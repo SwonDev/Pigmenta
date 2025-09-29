@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Download, RotateCcw } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
+import type { ColorPalette, ColorShade } from '../types';
 
 // Types
 interface Point {
@@ -25,6 +26,12 @@ interface DragState {
   offset: Point;
 }
 
+interface NodeCanvasProps {
+  palette?: ColorPalette;
+  onShadeClick?: (shade: ColorShade, index: number) => void;
+  isMobile?: boolean;
+}
+
 // Constants
 const NODE_SIZE = 100;
 const GRID_SPACING = 140;
@@ -35,7 +42,7 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 
 
 
-const NodeCanvas: React.FC = () => {
+const NodeCanvas: React.FC<NodeCanvasProps> = ({ palette, onShadeClick, isMobile = false }) => {
   // Store
   const { currentPalette } = useAppStore();
   

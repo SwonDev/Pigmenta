@@ -1,31 +1,54 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Palette, Hash, Layers, Settings, ChevronDown } from 'lucide-react';
+import { 
+  Settings, 
+  Palette, 
+  Hash, 
+  Layers, 
+  ChevronDown,
+  Sliders,
+  Zap
+} from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { DESIGN_TOKENS, DARK_THEME_COLORS } from '../constants/designTokens';
-import type { ColorAlgorithm, NamingPattern } from '../types';
+import { ColorAlgorithm, NamingPattern } from '../types';
 
-export const ControlsPanel = () => {
-  const {
-    algorithm,
-    setAlgorithm,
+interface ControlsPanelProps {
+  className?: string;
+}
+
+export const ControlsPanel: React.FC<ControlsPanelProps> = ({ className = '' }) => {
+  const { 
+    algorithm, 
+    setAlgorithm, 
+    namingPattern, 
+    setNamingPattern, 
+    shadeCount, 
+    setShadeCount,
+    customShadeMode,
+    setCustomShadeMode,
+    customShadeCount,
+    setCustomShadeCount,
     contrastShift,
     setContrastShift,
-    namingPattern,
-    setNamingPattern,
-    shadeCount,
-    setShadeCount,
-    controlsExpanded,
-    customShadeMode,
-    customShadeCount,
-    setCustomShadeMode,
-    setCustomShadeCount,
-    toggleControls,
-    theme
+    isDark
   } = useAppStore();
-  const isDark = theme === 'dark';
+
+  const [algorithmDropdownOpen, setAlgorithmDropdownOpen] = useState(false);
   const [namingDropdownOpen, setNamingDropdownOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -106,7 +129,7 @@ export const ControlsPanel = () => {
 
   return (
     <motion.div
-      className="rounded-2xl shadow-lg border overflow-hidden transition-colors duration-300"
+      className={`rounded-2xl shadow-lg border overflow-hidden transition-colors duration-300 ${isMobile ? 'mobile-controls-panel' : ''}`}
       style={{
         backgroundColor: DESIGN_TOKENS.colors.surface.card,
         borderColor: DESIGN_TOKENS.colors.border.subtle
@@ -115,48 +138,7 @@ export const ControlsPanel = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
     >
-      {/* Header */}
-      <motion.div
-        className="px-6 py-4 border-b cursor-pointer transition-colors duration-200"
-        style={{
-          borderColor: isDark ? DARK_THEME_COLORS.border.primary : '#e5e7eb',
-          backgroundColor: DESIGN_TOKENS.colors.surface.card
-        }}
-        whileHover={{
-          backgroundColor: DESIGN_TOKENS.colors.surface.mutedCard
-        }}
-        onClick={() => toggleControls()}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Settings className="w-5 h-5 text-gray-600" />
-            <h2 className="text-lg font-semibold transition-colors duration-300" style={{
-              color: DESIGN_TOKENS.colors.text.primary
-            }}>Controls</h2>
-          </div>
-          <motion.div
-            animate={{ rotate: controlsExpanded ? 180 : 0 }}
-            transition={{ duration: 0.3 }}
-            className="text-gray-400"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </motion.div>
-        </div>
-      </motion.div>
-
-      {/* Content */}
-      <motion.div
-        initial={false}
-        animate={{
-          height: controlsExpanded ? 'auto' : 0,
-          opacity: controlsExpanded ? 1 : 0
-        }}
-        transition={{ duration: 0.3, ease: 'easeInOut' }}
-        className="overflow-hidden"
-      >
-        <div className="p-6 space-y-8">
+      <div className={`p-6 space-y-8 ${isMobile ? 'p-4 space-y-6 mobile-controls-content' : ''}`}>
           {/* Algorithm Selector */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
@@ -171,7 +153,7 @@ export const ControlsPanel = () => {
               <select
                 value={algorithm}
                 onChange={(e) => setAlgorithm(e.target.value as ColorAlgorithm)}
-                className="w-full p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 appearance-none"
+                className={`w-full p-3 rounded-xl border-2 cursor-pointer transition-all duration-200 focus:outline-none focus:ring-2 appearance-none ${isMobile ? 'mobile-select mobile-touch-target' : ''}`}
                 style={{
                   borderColor: DESIGN_TOKENS.colors.border.subtle,
                   backgroundColor: DESIGN_TOKENS.colors.surface.card,
@@ -235,12 +217,12 @@ export const ControlsPanel = () => {
             <div className="relative" ref={dropdownRef}>
               <input
                 type="range"
-                min="-50"
-                max="50"
-                step="5"
+                min="-10"
+                max="10"
+                step="0.5"
                 value={contrastShift}
-                onChange={(e) => setContrastShift(parseInt(e.target.value))}
-                className="w-full h-2 rounded-lg appearance-none cursor-pointer slider"
+                onChange={(e) => setContrastShift(parseFloat(e.target.value))}
+                className={`w-full h-2 rounded-lg appearance-none cursor-pointer slider ${isMobile ? 'mobile-slider mobile-touch-target' : ''}`}
                 style={{
                   background: `linear-gradient(to right, 
                     #ef4444 0%, 
@@ -254,9 +236,9 @@ export const ControlsPanel = () => {
               <div className="flex justify-between text-xs mt-1 transition-colors duration-300" style={{
                 color: DESIGN_TOKENS.colors.text.muted
               }}>
-                <span>-50</span>
+                <span>-10</span>
                 <span>0</span>
-                <span>+50</span>
+                <span>+10</span>
               </div>
             </div>
             <p className="text-xs transition-colors duration-300" style={{
@@ -279,14 +261,14 @@ export const ControlsPanel = () => {
             <div className="relative">
               <motion.button
                 onClick={() => setNamingDropdownOpen(!namingDropdownOpen)}
-                className="w-full p-3 text-left rounded-lg border-2 transition-all duration-200 flex items-center justify-between"
+                className={`w-full p-3 text-left rounded-lg border-2 transition-all duration-200 flex items-center justify-between ${isMobile ? 'mobile-dropdown-button mobile-touch-target' : ''}`}
                 style={{
                   borderColor: isDark ? DARK_THEME_COLORS.border.secondary : '#e5e7eb',
-                  backgroundColor: isDark ? DARK_THEME_COLORS.background.primary : '#ffffff',
+                  backgroundColor: isDark ? DARK_THEME_COLORS.background.primary : DESIGN_TOKENS.colors.surface.card,
                   color: isDark ? DARK_THEME_COLORS.text.secondary : '#374151'
                 }}
                 whileHover={{
-                  backgroundColor: isDark ? DARK_THEME_COLORS.background.secondary : '#f9fafb'
+                  backgroundColor: isDark ? DARK_THEME_COLORS.background.secondary : DESIGN_TOKENS.colors.surface.mutedCard
                 }}
                 whileTap={{ scale: 0.98 }}
               >
@@ -319,7 +301,7 @@ export const ControlsPanel = () => {
                     transition={{ duration: 0.2 }}
                     className="absolute bottom-full left-0 right-0 mb-2 border rounded-lg shadow-lg"
                     style={{
-                      backgroundColor: isDark ? DARK_THEME_COLORS.background.primary : '#ffffff',
+                      backgroundColor: isDark ? DARK_THEME_COLORS.background.primary : DESIGN_TOKENS.colors.surface.card,
                       borderColor: isDark ? DARK_THEME_COLORS.border.secondary : '#e5e7eb',
                       zIndex: 9999
                     }}
@@ -408,7 +390,7 @@ export const ControlsPanel = () => {
                     step="1"
                     value={shadeCount}
                     onChange={(e) => setShadeCount(parseInt(e.target.value))}
-                    className="w-full h-2 rounded-lg appearance-none cursor-pointer slider"
+                    className={`w-full h-2 rounded-lg appearance-none cursor-pointer slider ${isMobile ? 'mobile-slider mobile-touch-target' : ''}`}
                     style={{
                       background: isDark 
                         ? `linear-gradient(to right, ${DARK_THEME_COLORS.accent.primary}, ${DARK_THEME_COLORS.accent.hover})`
@@ -470,7 +452,7 @@ export const ControlsPanel = () => {
               </div>
               <motion.button
                 onClick={() => setCustomShadeMode(!customShadeMode)}
-                className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200"
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${isMobile ? 'mobile-toggle mobile-touch-target' : ''}`}
                 style={{
                   backgroundColor: customShadeMode 
                     ? (isDark ? DARK_THEME_COLORS.accent.primary : '#3b82f6')
@@ -479,7 +461,10 @@ export const ControlsPanel = () => {
                 whileTap={{ scale: 0.95 }}
               >
                 <motion.span
-                  className="inline-block h-4 w-4 transform rounded-full bg-white shadow-lg"
+                  className="inline-block h-4 w-4 transform rounded-full shadow-lg"
+                  style={{
+                    backgroundColor: isDark ? '#ffffff' : '#ffffff'
+                  }}
                   animate={{
                     x: customShadeMode ? 24 : 4
                   }}
@@ -501,7 +486,7 @@ export const ControlsPanel = () => {
                     <label className="text-sm font-medium transition-colors duration-300" style={{
                       color: isDark ? DARK_THEME_COLORS.text.secondary : '#374151'
                     }}>Custom Shade Count</label>
-                    <span className="text-sm font-mono px-2 py-1 rounded transition-colors duration-300" style={{
+                    <span className="text-sm font-mono px-1.5 py-0.5 rounded transition-colors duration-300" style={{
                       color: isDark ? DARK_THEME_COLORS.text.secondary : '#4b5563',
                       backgroundColor: DESIGN_TOKENS.colors.surface.mutedCard
                     }}>
@@ -519,10 +504,10 @@ export const ControlsPanel = () => {
                         const value = Math.max(3, Math.min(100, parseInt(e.target.value) || 3));
                         setCustomShadeCount(value);
                       }}
-                      className="w-full p-3 text-center rounded-lg border-2 transition-all duration-200 font-mono text-lg"
+                      className={`w-full p-3 text-center rounded-lg border-2 transition-all duration-200 font-mono text-lg ${isMobile ? 'mobile-input mobile-touch-target' : ''}`}
                       style={{
                         borderColor: isDark ? DARK_THEME_COLORS.border.secondary : '#e5e7eb',
-                        backgroundColor: isDark ? DARK_THEME_COLORS.background.primary : '#ffffff',
+                        backgroundColor: isDark ? DARK_THEME_COLORS.background.primary : DESIGN_TOKENS.colors.surface.card,
                         color: isDark ? DARK_THEME_COLORS.text.primary : '#111827'
                       }}
                     />
@@ -544,10 +529,7 @@ export const ControlsPanel = () => {
               )}
             </AnimatePresence>
           </div>
-
-
         </div>
       </motion.div>
-    </motion.div>
-  );
-};
+    );
+  };

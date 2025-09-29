@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Pipette, Shuffle, Copy, Check } from 'lucide-react';
+import { Pipette, Shuffle, Copy, Check, AlertCircle } from 'lucide-react';
 import { useAppStore } from '../stores/useAppStore';
 import { useColorStore } from '../stores/useColorStore';
 import { DESIGN_TOKENS, DARK_THEME_COLORS } from '../constants/designTokens';
 import { convertColor, parseColorInput, generateRandomColor, isValidHexColor } from '../utils/colorUtils';
+import { Input } from './ui/input';
 import type { ColorFormat } from '../types';
 
 export const ColorInputSection = () => {
@@ -19,18 +20,121 @@ export const ColorInputSection = () => {
   const { isDark } = useAppStore();
   
   const [hexInput, setHexInput] = useState(baseColor.hex);
+  const [hexInputValue, setHexInputValue] = useState(baseColor.hex); // Temporal editing value
+  const [isEditing, setIsEditing] = useState(false); // Track editing state
   const [copied, setCopied] = useState(false);
+  const [isValidInput, setIsValidInput] = useState(true);
+  const [inputError, setInputError] = useState('');
 
-  const handleHexChange = useCallback((value: string) => {
-    setHexInput(value);
+  // Sync hex input with base color changes from other sources (eyedropper, etc.)
+  useEffect(() => {
+    if (!isEditing) {
+      setHexInput(baseColor.hex);
+      setHexInputValue(baseColor.hex);
+      setIsValidInput(true);
+      setInputError('');
+    }
+  }, [baseColor.hex, isEditing]);
+
+  const validateAndUpdateColor = useCallback((value: string) => {
+    // Remove any whitespace and ensure it starts with #
+    const cleanValue = value.trim();
+    const hexValue = cleanValue.startsWith('#') ? cleanValue : `#${cleanValue}`;
     
-    if (isValidHexColor(value)) {
-      const newColor = parseColorInput(value);
+    // Allow empty input or partial input while typing
+    if (cleanValue === '' || cleanValue === '#') {
+      setIsValidInput(true);
+      setInputError('');
+      return;
+    }
+    
+    // Validate hex format (3, 4, 6, or 8 characters after #)
+    const hexPattern = /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/;
+    
+    if (!hexPattern.test(hexValue)) {
+      setIsValidInput(false);
+      setInputError('Formato hexadecimal inválido. Usa #RGB, #RRGGBB, etc.');
+      return;
+    }
+    
+    if (isValidHexColor(hexValue)) {
+      const newColor = parseColorInput(hexValue);
       if (newColor) {
         updateBaseColor(newColor);
+        setIsValidInput(true);
+        setInputError('');
+      } else {
+        setIsValidInput(false);
+        setInputError('No se pudo procesar el color');
       }
+    } else {
+      setIsValidInput(false);
+      setInputError('Color hexadecimal inválido');
     }
   }, [updateBaseColor]);
+
+  const handleHexChange = useCallback((value: string) => {
+    setHexInputValue(value);
+    setIsEditing(true);
+    
+    // Only validate format, don't update color while editing
+    const cleanValue = value.trim();
+    const hexValue = cleanValue.startsWith('#') ? cleanValue : `#${cleanValue}`;
+    
+    if (cleanValue === '' || cleanValue === '#') {
+      setIsValidInput(true);
+      setInputError('');
+      return;
+    }
+    
+    const hexPattern = /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{4}|[A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$/;
+    
+    if (!hexPattern.test(hexValue)) {
+      setIsValidInput(false);
+      setInputError('Formato hexadecimal inválido. Usa #RGB, #RRGGBB, etc.');
+    } else {
+      setIsValidInput(true);
+      setInputError('');
+    }
+  }, []);
+
+  const commitHexChange = useCallback(() => {
+    setIsEditing(false);
+    
+    if (isValidInput && hexInputValue.trim() !== '') {
+      const cleanValue = hexInputValue.trim();
+      const hexValue = cleanValue.startsWith('#') ? cleanValue : `#${cleanValue}`;
+      
+      if (isValidHexColor(hexValue)) {
+        const newColor = parseColorInput(hexValue);
+        if (newColor) {
+          updateBaseColor(newColor);
+          setHexInput(newColor.hex);
+          setHexInputValue(newColor.hex);
+          setIsValidInput(true);
+          setInputError('');
+        }
+      }
+    } else {
+      // Revert to current color if invalid
+      setHexInputValue(baseColor.hex);
+      setIsValidInput(true);
+      setInputError('');
+    }
+  }, [hexInputValue, isValidInput, updateBaseColor, baseColor.hex]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      commitHexChange();
+      (e.target as HTMLInputElement).blur();
+    } else if (e.key === 'Escape') {
+      setHexInputValue(baseColor.hex);
+      setIsEditing(false);
+      setIsValidInput(true);
+      setInputError('');
+      (e.target as HTMLInputElement).blur();
+    }
+  }, [commitHexChange, baseColor.hex]);
 
 
 
@@ -152,18 +256,47 @@ export const ColorInputSection = () => {
           >
             Hex Color
           </label>
-          <input
-            type="text"
-            value={hexInput}
-            onChange={(e) => handleHexChange(e.target.value)}
-            className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-mono text-sm"
-            style={{
-              backgroundColor: DESIGN_TOKENS.colors.surface.mutedCard,
-              borderColor: DESIGN_TOKENS.colors.border.subtle,
-              color: DESIGN_TOKENS.colors.text.primary
-            }}
-            placeholder="#3b82f6"
-          />
+          <div className="relative">
+            <Input
+              id="main-hex-input"
+              type="text"
+              value={hexInputValue}
+              onChange={(e) => handleHexChange(e.target.value)}
+              onBlur={commitHexChange}
+              onKeyDown={handleKeyDown}
+              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent transition-all duration-200 font-mono text-sm pr-10 ${
+                !isValidInput ? 'border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'
+              }`}
+              style={{
+                backgroundColor: DESIGN_TOKENS.colors.surface.mutedCard,
+                borderColor: !isValidInput ? '#ef4444' : DESIGN_TOKENS.colors.border.subtle,
+                color: DESIGN_TOKENS.colors.text.primary
+              }}
+              placeholder="#3b82f6"
+              spellCheck={false}
+              autoComplete="off"
+              readOnly={false}
+            />
+            {!isValidInput && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <AlertCircle className="w-5 h-5 text-red-500" />
+              </div>
+            )}
+          </div>
+          {!isValidInput && inputError && (
+            <motion.p
+              className="text-sm text-red-500 flex items-center gap-1"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <AlertCircle className="w-4 h-4" />
+              {inputError}
+            </motion.p>
+          )}
+          <p className="text-xs" style={{ color: DESIGN_TOKENS.colors.text.muted }}>
+            Escribe un color hexadecimal (ej: #ff0000, #f00, #ff0000ff)
+          </p>
         </div>
 
         {/* Format Selector */}

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Palette, History, ChevronDown, Pipette } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Slider } from '@/components/ui/slider';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Slider } from './ui/slider';
 import { useAppStore } from '../stores/useAppStore';
 import { parseColorInput, isValidHexColor } from '../utils/colorUtils';
 import { PREDEFINED_COLORS } from '../types';
@@ -18,14 +18,26 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   const { currentPalette, settings, theme, updateBaseColor, addToColorHistory } = useAppStore();
   const isDark = theme === 'dark';
   const [localColor, setLocalColor] = useState<string>(currentPalette?.baseColor?.hex || '#1E96BE');
+  const [hexInputValue, setHexInputValue] = useState<string>(currentPalette?.baseColor?.hex || '#1E96BE');
   const [colorFormat, setColorFormat] = useState<'hex' | 'rgb' | 'hsl'>('hex');
   const [rgbValues, setRgbValues] = useState({ r: 30, g: 150, b: 190 });
   const [hslValues, setHslValues] = useState({ h: 195, s: 73, l: 43 });
   const [showCanvasSelector, setShowCanvasSelector] = useState(false);
   const [showPredefinedColors, setShowPredefinedColors] = useState(false);
   const [showSliders] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Detectar si es móvil
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Actualizar valores cuando cambia el color
   useEffect(() => {
@@ -44,9 +56,19 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
           s: colorValue.hsl.s,
           l: colorValue.hsl.l
         });
+        
+        setHexInputValue(localColor);
       }
     }
   }, [localColor]);
+
+  // Sincronizar hexInputValue cuando cambia el color base desde fuera
+  useEffect(() => {
+    if (currentPalette?.baseColor?.hex && currentPalette.baseColor.hex !== hexInputValue) {
+      setLocalColor(currentPalette.baseColor.hex);
+      setHexInputValue(currentPalette.baseColor.hex);
+    }
+  }, [currentPalette?.baseColor?.hex]);
 
   // Dibujar el selector de color en canvas
   useEffect(() => {
@@ -102,6 +124,19 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
       if (shouldAnimate && isValidHexColor(colorValue.hex)) {
         addToColorHistory(colorValue.hex);
       }
+    }
+  };
+
+  const handleHexInputChange = (value: string) => {
+    // Always update the input value to allow typing
+    setHexInputValue(value);
+    
+    // Only update the actual color if the input is valid
+    const colorValue = parseColorInput(value);
+    if (colorValue) {
+      setLocalColor(value);
+      updateBaseColor(colorValue, true);
+      addToColorHistory(colorValue.hex);
     }
   };
 
@@ -175,7 +210,9 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
 
   return (
     <motion.div 
-      className={`rounded-xl shadow-lg border p-6 transition-colors duration-300 ${className}`}
+      className={`rounded-xl shadow-lg border transition-colors duration-300 ${className} ${
+        isMobile ? 'p-4' : 'p-6'
+      }`}
       style={{
         backgroundColor: DESIGN_TOKENS.colors.surface.card,
         borderColor: isDark ? DARK_THEME_COLORS.border.primary : '#e5e7eb',
@@ -185,7 +222,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="flex items-center gap-3 mb-6">
+      <div className={`flex items-center gap-3 ${isMobile ? 'mb-4' : 'mb-6'}`}>
         <div 
           className="p-2 rounded-lg"
           style={{
@@ -193,7 +230,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
           }}
         >
           <Palette 
-            className="w-5 h-5" 
+            className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`}
             style={{
               color: isDark ? DARK_THEME_COLORS.text.tertiary : '#2563eb'
             }}
@@ -201,7 +238,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
         </div>
         <div>
           <h3 
-            className="text-lg font-semibold"
+            className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold`}
             style={{
               color: isDark ? DARK_THEME_COLORS.text.primary : '#111827'
             }}
@@ -209,7 +246,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
             Color Picker
           </h3>
           <p 
-            className="text-sm"
+            className={`${isMobile ? 'text-xs' : 'text-sm'}`}
             style={{
               color: isDark ? DARK_THEME_COLORS.text.tertiary : '#6b7280'
             }}
@@ -220,7 +257,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
       </div>
 
       {/* Preview del color actual - Clickeable */}
-      <div className="mb-6">
+      <div className={`${isMobile ? 'mb-4' : 'mb-6'}`}>
         <div className="flex items-center gap-2 mb-2">
           <Pipette 
             className="w-4 h-4" 
@@ -238,7 +275,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
           </Label>
         </div>
         <div 
-          className="w-full h-16 rounded-lg border-2 shadow-inner cursor-pointer transition-all duration-200 hover:shadow-lg"
+          className={`w-full ${isMobile ? 'h-12' : 'h-16'} rounded-lg border-2 shadow-inner cursor-pointer transition-all duration-200 hover:shadow-lg`}
           style={{ 
             backgroundColor: localColor,
             borderColor: showCanvasSelector 
@@ -248,12 +285,12 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
           onClick={() => setShowCanvasSelector(!showCanvasSelector)}
         />
         <p 
-          className="text-center text-sm mt-2 font-mono"
+          className={`text-center ${isMobile ? 'text-xs' : 'text-sm'} mt-2 font-mono`}
           style={{
             color: isDark ? DARK_THEME_COLORS.text.tertiary : '#4b5563'
           }}
         >
-          {localColor}
+          {hexInputValue}
         </p>
       </div>
 
@@ -261,7 +298,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
       <AnimatePresence>
         {showCanvasSelector && (
           <motion.div 
-            className="mb-6"
+            className={`${isMobile ? 'mb-4' : 'mb-6'}`}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -279,8 +316,8 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
               <canvas
                 ref={canvasRef}
                 width={280}
-                height={120}
-                className="w-full h-30 rounded-lg border cursor-crosshair transition-all duration-200 hover:shadow-md"
+                height={isMobile ? 100 : 120}
+                className={`w-full ${isMobile ? 'h-24' : 'h-30'} rounded-lg border cursor-crosshair transition-all duration-200 hover:shadow-md`}
                 style={{
                   borderColor: isDark ? DARK_THEME_COLORS.border.secondary : '#e5e7eb',
                   display: 'block'
@@ -301,7 +338,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
 
       {/* Sliders adaptativos RGB/HSL */}
       {showSliders && (
-        <div className="mb-6">
+        <div className={`${isMobile ? 'mb-4' : 'mb-6'}`}>
           <div className="flex items-center justify-between mb-3">
             <Label 
               className="text-sm font-medium"
@@ -314,7 +351,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
           </div>
           
           {colorFormat === 'rgb' && (
-            <div className="space-y-4">
+            <div className={`${isMobile ? 'space-y-3' : 'space-y-4'}`}>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <Label className="text-xs font-medium" style={{ color: isDark ? DARK_THEME_COLORS.text.tertiary : '#6b7280' }}>R</Label>
@@ -358,7 +395,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
           )}
           
           {colorFormat === 'hsl' && (
-            <div className="space-y-4">
+            <div className={`${isMobile ? 'space-y-3' : 'space-y-4'}`}>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <Label className="text-xs font-medium" style={{ color: isDark ? DARK_THEME_COLORS.text.tertiary : '#6b7280' }}>H</Label>
@@ -404,7 +441,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
       )}
 
       {/* Inputs de color */}
-      <Tabs value={colorFormat} onValueChange={(value) => setColorFormat(value as 'hex' | 'rgb' | 'hsl')} className="mb-6">
+      <Tabs value={colorFormat} onValueChange={(value) => setColorFormat(value as 'hex' | 'rgb' | 'hsl')} className={`${isMobile ? 'mb-4' : 'mb-6'}`}>
         <TabsList 
           className="grid w-full grid-cols-3"
           style={{
@@ -420,7 +457,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
         <TabsContent value="hex" className="mt-4">
           <div className="space-y-2">
             <Label 
-              htmlFor="hex-input" 
+              htmlFor="colorpicker-hex-input" 
               className="text-sm font-medium"
               style={{
                 color: isDark ? DARK_THEME_COLORS.text.secondary : '#374151'
@@ -429,18 +466,19 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
               Código Hexadecimal
             </Label>
             <Input
-              id="hex-input"
+              id="colorpicker-hex-input"
               type="text"
-              value={localColor}
-              onChange={(e) => handleColorChange(e.target.value, true)}
+              value={hexInputValue}
+              onChange={(e) => handleHexInputChange(e.target.value)}
               placeholder="#1E96BE"
-              className="font-mono"
+              className={`font-mono ${isMobile ? 'h-12 text-base' : ''}`}
+              readOnly={false}
             />
           </div>
         </TabsContent>
         
         <TabsContent value="rgb" className="mt-4">
-          <div className="grid grid-cols-3 gap-3">
+          <div className={`grid grid-cols-3 ${isMobile ? 'gap-2' : 'gap-3'}`}>
             <div className="space-y-2">
               <Label 
                 htmlFor="r-input" 
@@ -458,7 +496,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                 max="255"
                 value={rgbValues.r}
                 onChange={(e) => handleRgbChange('r', parseInt(e.target.value) || 0)}
-                className="text-center"
+                className={`text-center ${isMobile ? 'h-12 text-base' : ''}`}
               />
             </div>
             <div className="space-y-2">
@@ -478,7 +516,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                 max="255"
                 value={rgbValues.g}
                 onChange={(e) => handleRgbChange('g', parseInt(e.target.value) || 0)}
-                className="text-center"
+                className={`text-center ${isMobile ? 'h-12 text-base' : ''}`}
               />
             </div>
             <div className="space-y-2">
@@ -498,14 +536,14 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                 max="255"
                 value={rgbValues.b}
                 onChange={(e) => handleRgbChange('b', parseInt(e.target.value) || 0)}
-                className="text-center"
+                className={`text-center ${isMobile ? 'h-12 text-base' : ''}`}
               />
             </div>
           </div>
         </TabsContent>
         
         <TabsContent value="hsl" className="mt-4">
-          <div className="grid grid-cols-3 gap-3">
+          <div className={`grid grid-cols-3 ${isMobile ? 'gap-2' : 'gap-3'}`}>
             <div className="space-y-2">
               <Label 
                 htmlFor="h-input" 
@@ -523,7 +561,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                 max="360"
                 value={hslValues.h}
                 onChange={(e) => handleHslChange('h', parseInt(e.target.value) || 0)}
-                className="text-center"
+                className={`text-center ${isMobile ? 'h-12 text-base' : ''}`}
               />
             </div>
             <div className="space-y-2">
@@ -543,7 +581,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                 max="100"
                 value={hslValues.s}
                 onChange={(e) => handleHslChange('s', parseInt(e.target.value) || 0)}
-                className="text-center"
+                className={`text-center ${isMobile ? 'h-12 text-base' : ''}`}
               />
             </div>
             <div className="space-y-2">
@@ -563,7 +601,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
                 max="100"
                 value={hslValues.l}
                 onChange={(e) => handleHslChange('l', parseInt(e.target.value) || 0)}
-                className="text-center"
+                className={`text-center ${isMobile ? 'h-12 text-base' : ''}`}
               />
             </div>
           </div>
@@ -571,9 +609,9 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
       </Tabs>
 
       {/* Colores predefinidos - Dropdown */}
-      <div className="mb-6">
+      <div className={`${isMobile ? 'mb-4' : 'mb-6'}`}>
         <button
-          className="w-full flex items-center justify-between p-3 rounded-lg border transition-colors"
+          className={`w-full flex items-center justify-between ${isMobile ? 'p-2.5' : 'p-3'} rounded-lg border transition-colors`}
           style={{
             backgroundColor: isDark ? DARK_THEME_COLORS.surface.secondary : '#f9fafb',
             borderColor: isDark ? DARK_THEME_COLORS.border.secondary : '#e5e7eb'
@@ -588,7 +626,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
               }}
             />
             <Label 
-              className="text-sm font-medium"
+              className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium`}
               style={{
                 color: isDark ? DARK_THEME_COLORS.text.secondary : '#374151'
               }}
@@ -609,7 +647,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
         <AnimatePresence>
           {showPredefinedColors && (
             <motion.div
-              className="mt-3 p-3 rounded-lg border"
+              className={`mt-3 ${isMobile ? 'p-2.5' : 'p-3'} rounded-lg border`}
               style={{
                 backgroundColor: isDark ? DARK_THEME_COLORS.surface.secondary : '#f9fafb',
                 borderColor: isDark ? DARK_THEME_COLORS.border.secondary : '#e5e7eb'
@@ -619,11 +657,11 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="grid grid-cols-6 gap-2">
+              <div className={`grid ${isMobile ? 'grid-cols-5 gap-1.5' : 'grid-cols-6 gap-2'}`}>
                 {PREDEFINED_COLORS.map((color, index) => (
                   <button
                     key={index}
-                    className="w-10 h-10 rounded-lg border-2 transition-colors shadow-sm hover:shadow-md"
+                    className={`${isMobile ? 'w-8 h-8' : 'w-10 h-10'} rounded-lg border-2 transition-colors shadow-sm hover:shadow-md`}
                     style={{ 
                       backgroundColor: color,
                       borderColor: isDark ? DARK_THEME_COLORS.border.secondary : '#e5e7eb'
@@ -655,7 +693,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
               }}
             />
             <Label 
-              className="text-sm font-medium"
+              className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium`}
               style={{
                 color: isDark ? DARK_THEME_COLORS.text.secondary : '#374151'
               }}
@@ -663,11 +701,11 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
               Historial Reciente
             </Label>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className={`flex ${isMobile ? 'gap-1.5' : 'gap-2'} flex-wrap`}>
             {settings.colorHistory.slice(0, 8).map((color, index) => (
               <button
                 key={index}
-                className="w-8 h-8 rounded-md border transition-colors shadow-sm hover:shadow-md"
+                className={`${isMobile ? 'w-7 h-7' : 'w-8 h-8'} rounded-md border transition-colors shadow-sm hover:shadow-md`}
                 style={{ 
                   backgroundColor: color,
                   borderColor: isDark ? DARK_THEME_COLORS.border.secondary : '#e5e7eb'
