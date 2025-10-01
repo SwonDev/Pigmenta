@@ -1,9 +1,6 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Sparkles, 
-  ChevronDown, 
-  ChevronRight,
   Heart,
   Leaf,
   Sun,
@@ -19,14 +16,15 @@ import {
   Zap,
   Moon,
   Coffee,
-  Building
+  Building,
+  type LucideIcon
 } from 'lucide-react';
 // Removed Collapsible import - using custom implementation
 import { useAppStore } from '../stores/useAppStore';
 import { parseColorInput, generatePalette } from '../utils/colorUtils';
 import { generatePaletteName } from '../utils/paletteNaming';
 import { DESIGN_TOKENS } from '../constants/designTokens';
-import type { ColorValue, ColorAlgorithm, ColorPalette } from '../types';
+import type { ColorValue, ColorAlgorithm, ColorPalette, ColorShade } from '../types';
 
 // Algoritmos de generación inteligente de paletas con variaciones
 const generateEmotionPalette = (emotion: string): ColorValue => {
@@ -93,295 +91,9 @@ const generateIndustryPalette = (industry: string): ColorValue => {
   return parseColorInput(colorHex) || generateRandomColorValue();
 };
 
-const generateAIHarmonyPalette = (): ColorValue => {
-  // ALGORITMO AI COLOR HARMONY - Teoría del color matemática profesional
-  
-  // 1. Definir armonías cromáticas matemáticamente precisas
-  const colorHarmonies = [
-    {
-      name: 'complementary',
-      angles: [0, 180], // Exactamente opuestos en el círculo cromático
-      description: 'Máximo contraste y equilibrio visual'
-    },
-    {
-      name: 'triadic',
-      angles: [0, 120, 240], // División perfecta en tercios (360°/3)
-      description: 'Equilibrio dinámico y vibrante'
-    },
-    {
-      name: 'tetradic',
-      angles: [0, 90, 180, 270], // División en cuartos perfectos
-      description: 'Máxima riqueza cromática balanceada'
-    },
-    {
-      name: 'analogous',
-      angles: [0, 30, 60], // Colores adyacentes armoniosos
-      description: 'Armonía natural y suave'
-    },
-    {
-      name: 'splitComplementary',
-      angles: [0, 150, 210], // Complementario dividido
-      description: 'Contraste suave pero dinámico'
-    },
-    {
-      name: 'doubleComplementary',
-      angles: [0, 30, 180, 210], // Dos pares complementarios
-      description: 'Complejidad equilibrada'
-    }
-  ];
 
-  // 2. Seleccionar armonía usando distribución ponderada (favorece armonías más profesionales)
-  const harmonyWeights = [0.25, 0.20, 0.15, 0.20, 0.15, 0.05]; // Complementary y triadic más probables
-  let random = Math.random();
-  let selectedHarmony = colorHarmonies[0];
-  
-  for (let i = 0; i < harmonyWeights.length; i++) {
-    if (random < harmonyWeights[i]) {
-      selectedHarmony = colorHarmonies[i];
-      break;
-    }
-    random -= harmonyWeights[i];
-  }
 
-  // 3. Calcular hue base usando proporción áurea para distribución natural
-  const goldenAngle = 137.508; // Ángulo áureo en grados
-  const baseHue = (Math.random() * goldenAngle) % 360;
 
-  // 4. Seleccionar ángulo específico de la armonía usando secuencia de Fibonacci
-  const fibonacciSequence = [1, 1, 2, 3, 5, 8];
-  const angleIndex = fibonacciSequence[Math.floor(Math.random() * selectedHarmony.angles.length)] % selectedHarmony.angles.length;
-  const selectedAngle = selectedHarmony.angles[angleIndex];
-  const finalHue = (baseHue + selectedAngle) % 360;
-
-  // 5. Calcular saturación usando ratios matemáticos profesionales
-  let saturation: number;
-  let lightness: number;
-
-  // Aplicar reglas de saturación según el tipo de armonía
-  switch (selectedHarmony.name) {
-    case 'complementary':
-      // Complementarios: saturación alta para máximo contraste
-      saturation = 65 + (Math.random() * 25); // 65-90%
-      lightness = 45 + (Math.random() * 20); // 45-65%
-      break;
-      
-    case 'triadic':
-      // Triádicos: saturación moderada-alta, equilibrada
-      saturation = 60 + (Math.random() * 30); // 60-90%
-      lightness = 50 + (Math.random() * 25); // 50-75%
-      break;
-      
-    case 'tetradic':
-      // Tetrádicos: saturación controlada para evitar sobrecarga visual
-      saturation = 55 + (Math.random() * 25); // 55-80%
-      lightness = 40 + (Math.random() * 30); // 40-70%
-      break;
-      
-    case 'analogous':
-      // Análogos: saturación suave y armoniosa
-      saturation = 50 + (Math.random() * 30); // 50-80%
-      lightness = 55 + (Math.random() * 25); // 55-80%
-      break;
-      
-    case 'splitComplementary':
-      // Split-complementarios: saturación media-alta
-      saturation = 58 + (Math.random() * 27); // 58-85%
-      lightness = 48 + (Math.random() * 22); // 48-70%
-      break;
-      
-    case 'doubleComplementary':
-      // Doble complementarios: saturación moderada
-      saturation = 52 + (Math.random() * 23); // 52-75%
-      lightness = 45 + (Math.random() * 25); // 45-70%
-      break;
-      
-    default:
-      // Fallback con valores balanceados
-      saturation = 60 + (Math.random() * 25); // 60-85%
-      lightness = 50 + (Math.random() * 20); // 50-70%
-  }
-
-  // 6. Aplicar corrección de contraste para legibilidad
-  // Asegurar que el color tenga suficiente contraste para ser legible
-  if (lightness < 25) lightness += 15; // Evitar colores demasiado oscuros
-  if (lightness > 85) lightness -= 15; // Evitar colores demasiado claros
-  if (saturation < 30) saturation += 20; // Asegurar suficiente saturación
-
-  // 7. Generar color final con precisión matemática
-  const colorHex = `hsl(${Math.round(finalHue * 10) / 10}, ${Math.round(saturation * 10) / 10}%, ${Math.round(lightness * 10) / 10}%)`;
-  
-  return parseColorInput(colorHex) || generateRandomColorValue();
-};
-
-// NUEVA FUNCIÓN: Generar paleta completa de armonía IA con múltiples colores complementarios
-const generateAndApplyAIHarmonyPalette = (updatePalette: (palette: any) => void, shadeCount: number, algorithm: any, contrastShift: number, namingPattern: any) => {
-  // 1. Definir armonías cromáticas con múltiples colores
-  const colorHarmonies = [
-    {
-      name: 'complementary',
-      angles: [0, 180],
-      colorCount: 2,
-      description: 'Máximo contraste y equilibrio visual'
-    },
-    {
-      name: 'triadic',
-      angles: [0, 120, 240],
-      colorCount: 3,
-      description: 'Equilibrio dinámico y vibrante'
-    },
-    {
-      name: 'tetradic',
-      angles: [0, 90, 180, 270],
-      colorCount: 4,
-      description: 'Máxima riqueza cromática balanceada'
-    },
-    {
-      name: 'analogous',
-      angles: [0, 30, 60],
-      colorCount: 3,
-      description: 'Armonía natural y suave'
-    },
-    {
-      name: 'splitComplementary',
-      angles: [0, 150, 210],
-      colorCount: 3,
-      description: 'Contraste suave pero dinámico'
-    },
-    {
-      name: 'doubleComplementary',
-      angles: [0, 30, 180, 210],
-      colorCount: 4,
-      description: 'Complejidad equilibrada'
-    }
-  ];
-
-  // 2. Seleccionar armonía con distribución ponderada
-  const harmonyWeights = [0.25, 0.20, 0.15, 0.20, 0.15, 0.05];
-  let random = Math.random();
-  let selectedHarmony = colorHarmonies[0];
-  
-  for (let i = 0; i < harmonyWeights.length; i++) {
-    if (random < harmonyWeights[i]) {
-      selectedHarmony = colorHarmonies[i];
-      break;
-    }
-    random -= harmonyWeights[i];
-  }
-
-  // 3. Calcular hue base usando proporción áurea
-  const goldenAngle = 137.508;
-  const baseHue = (Math.random() * goldenAngle) % 360;
-
-  // 4. Generar todos los colores de la armonía
-  const harmonyColors: ColorValue[] = [];
-  
-  for (let i = 0; i < selectedHarmony.angles.length; i++) {
-    const angle = selectedHarmony.angles[i];
-    const finalHue = (baseHue + angle) % 360;
-    
-    // Calcular saturación y luminosidad específicas para cada color
-    let saturation: number;
-    let lightness: number;
-    
-    // Variaciones sutiles para cada color en la armonía
-    const variation = i * 0.1; // Pequeña variación entre colores
-    
-    switch (selectedHarmony.name) {
-      case 'complementary':
-        saturation = 70 + (Math.random() * 20) + (variation * 10);
-        lightness = 50 + (Math.random() * 15) + (variation * 5);
-        break;
-        
-      case 'triadic':
-        saturation = 65 + (Math.random() * 25) + (variation * 8);
-        lightness = 55 + (Math.random() * 20) + (variation * 6);
-        break;
-        
-      case 'tetradic':
-        saturation = 60 + (Math.random() * 20) + (variation * 6);
-        lightness = 45 + (Math.random() * 25) + (variation * 8);
-        break;
-        
-      case 'analogous':
-        saturation = 55 + (Math.random() * 30) + (variation * 5);
-        lightness = 60 + (Math.random() * 20) + (variation * 4);
-        break;
-        
-      case 'splitComplementary':
-        saturation = 62 + (Math.random() * 23) + (variation * 7);
-        lightness = 52 + (Math.random() * 18) + (variation * 5);
-        break;
-        
-      case 'doubleComplementary':
-        saturation = 58 + (Math.random() * 22) + (variation * 6);
-        lightness = 48 + (Math.random() * 22) + (variation * 7);
-        break;
-        
-      default:
-        saturation = 65 + (Math.random() * 20);
-        lightness = 55 + (Math.random() * 15);
-    }
-
-    // Aplicar corrección de contraste
-    saturation = Math.max(35, Math.min(95, saturation));
-    lightness = Math.max(25, Math.min(85, lightness));
-
-    // Generar color
-    const colorHex = `hsl(${Math.round(finalHue * 10) / 10}, ${Math.round(saturation * 10) / 10}%, ${Math.round(lightness * 10) / 10}%)`;
-    const colorValue = parseColorInput(colorHex);
-    
-    if (colorValue) {
-      harmonyColors.push(colorValue);
-    }
-  }
-
-  // 5. Seleccionar color base principal (el más balanceado)
-  const baseColor = harmonyColors.find(color => 
-    color.hsl.s >= 50 && color.hsl.s <= 80 && 
-    color.hsl.l >= 40 && color.hsl.l <= 70
-  ) || harmonyColors[0];
-
-  // 6. Generar paleta completa usando el color base
-  const newPalette = generatePalette(
-    baseColor,
-    algorithm,
-    shadeCount,
-    contrastShift,
-    namingPattern,
-    `Armonía ${selectedHarmony.name.charAt(0).toUpperCase() + selectedHarmony.name.slice(1)}`
-  );
-
-  // 7. Modificar algunos tonos de la paleta con los colores complementarios
-  if (newPalette.shades.length >= harmonyColors.length) {
-    // Distribuir los colores armoniosos a lo largo de la paleta
-    const step = Math.floor(newPalette.shades.length / harmonyColors.length);
-    
-    harmonyColors.forEach((harmonyColor, index) => {
-      const targetIndex = Math.min(index * step, newPalette.shades.length - 1);
-      if (targetIndex < newPalette.shades.length) {
-        // Mezclar el color de armonía con el tono original para mantener coherencia
-        const originalColor = newPalette.shades[targetIndex].color;
-        const blendRatio = 0.7; // 70% color de armonía, 30% color original
-        
-        const blendedHue = (harmonyColor.hsl.h * blendRatio + originalColor.hsl.h * (1 - blendRatio)) % 360;
-        const blendedSat = harmonyColor.hsl.s * blendRatio + originalColor.hsl.s * (1 - blendRatio);
-        const blendedLight = harmonyColor.hsl.l * blendRatio + originalColor.hsl.l * (1 - blendRatio);
-        
-        const blendedColorHex = `hsl(${Math.round(blendedHue)}, ${Math.round(blendedSat)}%, ${Math.round(blendedLight)}%)`;
-        const blendedColor = parseColorInput(blendedColorHex);
-        
-        if (blendedColor) {
-          newPalette.shades[targetIndex].color = blendedColor;
-        }
-      }
-    });
-  }
-
-  // 8. Aplicar la paleta
-  updatePalette(newPalette);
-  
-  return baseColor;
-};
 
 const generateRandomColorValue = (): ColorValue => {
   // Definir diferentes tipos de paletas aleatorias
@@ -435,12 +147,13 @@ const generateRandomColorValue = (): ColorValue => {
       lightness = 50 + Math.random() * 20; // 50-70%
       break;
       
-    case 'earth':
+    case 'earth': {
       const earthHues = [25, 35, 45, 60, 120, 30]; // Marrones, ocres, verdes
       hue = earthHues[Math.floor(Math.random() * earthHues.length)] + (Math.random() - 0.5) * 20;
       saturation = 30 + Math.random() * 40; // 30-70%
       lightness = 25 + Math.random() * 40; // 25-65%
       break;
+    }
       
     case 'ocean':
       hue = 180 + (Math.random() - 0.5) * 120; // Azules y verdes
@@ -492,7 +205,7 @@ const generateRandomColorValue = (): ColorValue => {
       lightness = 40 + Math.random() * 35; // 40-75%
       break;
       
-    case 'triadic':
+    case 'triadic': {
       const baseHue = Math.random() * 360;
       const triadicOffsets = [0, 120, 240];
       const selectedOffset = triadicOffsets[Math.floor(Math.random() * triadicOffsets.length)];
@@ -500,13 +213,15 @@ const generateRandomColorValue = (): ColorValue => {
       saturation = 45 + Math.random() * 45; // 45-90%
       lightness = 35 + Math.random() * 40; // 35-75%
       break;
+    }
       
-    case 'analogous':
+    case 'analogous': {
       const analogousBase = Math.random() * 360;
       hue = analogousBase + (Math.random() - 0.5) * 60; // ±30° del base
       saturation = 40 + Math.random() * 50; // 40-90%
       lightness = 35 + Math.random() * 45; // 35-80%
       break;
+    }
       
     default:
       // Fallback completamente aleatorio
@@ -645,7 +360,7 @@ const generateCompleteAIHarmonyPalette = (): ColorPalette => {
   const baseColor = harmonyColors[0] || generateRandomColorValue();
 
   // 6. Crear shades personalizados distribuyendo los colores de armonía inteligentemente
-  const customShades: any[] = [];
+  const customShades: ColorShade[] = [];
   const shadeValues = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
   const totalShades = shadeValues.length;
   const harmonyCount = harmonyColors.length;
@@ -693,7 +408,7 @@ const generateCompleteAIHarmonyPalette = (): ColorPalette => {
         const finalHsl = `hsl(${baseHarmonyColor.hsl.h}, ${Math.round(adjustedSaturation)}%, ${Math.round(targetLightness)}%)`;
         const parsedColor = parseColorInput(finalHsl);
         shadeColor = parsedColor || baseHarmonyColor;
-      } catch (error) {
+      } catch {
         // En caso de cualquier error, usar el color base o generar uno aleatorio
         shadeColor = baseHarmonyColor || generateRandomColorValue();
       }
@@ -720,13 +435,12 @@ const generateCompleteAIHarmonyPalette = (): ColorPalette => {
 };
 
 export const IntelligentGeneration = () => {
-  const [isOpen, setIsOpen] = useState(false);
   const { updateBaseColor, updatePalette, algorithm, shadeCount, contrastShift, namingPattern } = useAppStore();
 
   const generateAndApplyPalette = (baseColor: ColorValue, generationType: string) => {
     try {
       // Generar la paleta completa de forma instantánea
-      const newPalette = generatePalette(
+      generatePalette(
         baseColor,
         algorithm,
         shadeCount,
@@ -770,12 +484,10 @@ export const IntelligentGeneration = () => {
 
   const OptionButton = ({ 
     option, 
-    onClick, 
-    generator 
+    onClick 
   }: { 
-    option: { key: string; label: string; icon: any }; 
+    option: { key: string; label: string; icon: LucideIcon }; 
     onClick: () => void;
-    generator: (key: string) => ColorValue;
   }) => {
     const Icon = option.icon;
     
@@ -801,44 +513,7 @@ export const IntelligentGeneration = () => {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header Button */}
-      <motion.button
-          onClick={() => setIsOpen(!isOpen)}
-          className="w-full flex items-center justify-between p-4 rounded-xl transition-all duration-200"
-          style={{
-            backgroundColor: DESIGN_TOKENS.colors.surface.card,
-            color: DESIGN_TOKENS.colors.text.primary,
-            border: `1px solid ${DESIGN_TOKENS.colors.border.primary}`,
-          }}
-          whileHover={{
-              backgroundColor: DESIGN_TOKENS.colors.surface.card,
-              scale: 1.02
-            }}
-          whileTap={{ scale: 0.98 }}
-        >
-        <div className="flex items-center gap-3">
-          <Sparkles size={20} className="text-purple-400" />
-          <span className="font-semibold">Generación Inteligente</span>
-        </div>
-        <motion.div
-          animate={{ rotate: isOpen ? 90 : 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <ChevronRight size={18} />
-        </motion.div>
-      </motion.button>
-
-      {/* Collapsible Content */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-6 overflow-hidden"
-          >
+    <div className="space-y-6">
                 {/* Paletas por Emoción */}
                 <div className="space-y-3">
                   <h4 className="text-sm font-semibold text-purple-400 flex items-center gap-2">
@@ -850,7 +525,6 @@ export const IntelligentGeneration = () => {
                       <OptionButton
                         key={option.key}
                         option={option}
-                        generator={generateEmotionPalette}
                         onClick={() => {
                           const baseColor = generateEmotionPalette(option.key);
                           generateAndApplyPalette(baseColor, `Paleta ${option.label}`);
@@ -871,7 +545,6 @@ export const IntelligentGeneration = () => {
                       <OptionButton
                         key={option.key}
                         option={option}
-                        generator={generateSeasonalPalette}
                         onClick={() => {
                           const baseColor = generateSeasonalPalette(option.key);
                           generateAndApplyPalette(baseColor, `Paleta ${option.label}`);
@@ -892,7 +565,6 @@ export const IntelligentGeneration = () => {
                       <OptionButton
                         key={option.key}
                         option={option}
-                        generator={generateIndustryPalette}
                         onClick={() => {
                           const baseColor = generateIndustryPalette(option.key);
                           generateAndApplyPalette(baseColor, `Paleta ${option.label}`);
@@ -910,7 +582,6 @@ export const IntelligentGeneration = () => {
                   </h4>
                   <OptionButton
                     option={{ key: 'ai-harmony', label: 'Generar Armonía IA', icon: Sparkles }}
-                    generator={generateAIHarmonyPalette}
                     onClick={() => {
                       // Generar paleta completa con múltiples colores complementarios
                       const harmonyPalette = generateCompleteAIHarmonyPalette();
@@ -927,16 +598,12 @@ export const IntelligentGeneration = () => {
                   </h4>
                   <OptionButton
                     option={{ key: 'random', label: 'Paleta Aleatoria', icon: Dice6 }}
-                    generator={generateRandomColorValue}
                     onClick={() => {
                       const baseColor = generateRandomColorValue();
                       generateAndApplyPalette(baseColor, 'Paleta Aleatoria');
                     }}
                   />
                 </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

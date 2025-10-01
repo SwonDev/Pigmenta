@@ -1,4 +1,4 @@
-# 🎨 Pigmenta
+# 🐷🌿 Pigmenta
 
 **Extractor de Paletas de Colores Inteligente para Game Developers**
 

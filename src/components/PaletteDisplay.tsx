@@ -7,86 +7,26 @@ import { useAppStore } from '../stores/useAppStore';
 import { NotesPanel } from './NotesPanel';
 import { convertColor, getContrastRatio, isLightColor } from '../utils/colorUtils';
 import { getConsistentPaletteName } from '../utils/paletteNaming';
-import { generateFanPalette, getFanPosition } from '../utils/colorTheory';
+import { generateFanPalette } from '../utils/colorTheory';
 import type { ColorFormat, ColorPalette, ColorValue } from '../types';
 import type { ColorShade } from '../types';
 import { DESIGN_TOKENS, DARK_THEME_COLORS } from '../constants/designTokens';
 
 type ViewMode = 'grid' | 'list' | 'gradient' | 'donut' | 'nodes' | 'fan';
 
-// Función para extraer colores dominantes de la paleta
-const extractDominantColors = (palette: ColorPalette | null): string[] => {
-  if (!palette || palette.shades.length === 0) {
-    return ['#3b82f6', '#8b5cf6']; // Colores por defecto
-  }
-  
-  // Tomar el primer, medio y último color para crear un gradiente representativo
-  const colors = palette.shades.map(shade => shade.color.hex);
-  if (colors.length === 1) return [colors[0], colors[0]];
-  if (colors.length === 2) return colors;
-  
-  const firstColor = colors[0];
-  const middleColor = colors[Math.floor(colors.length / 2)];
-  const lastColor = colors[colors.length - 1];
-  
-  return [firstColor, middleColor, lastColor];
-};
 
-// Función para convertir HEX a HSL
-const hexToHsl = (hex: string): { h: number; s: number; l: number } => {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
 
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  let h = 0;
-  let s = 0;
-  const l = (max + min) / 2;
 
-  if (max !== min) {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    
-    switch (max) {
-      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-      case g: h = (b - r) / d + 2; break;
-      case b: h = (r - g) / d + 4; break;
-    }
-    h /= 6;
-  }
 
-  return { h: h * 360, s, l };
-};
 
-// Función para filtrar colores y obtener SOLO tonos intermedios reales
-const filterIntermediateTones = (colors: string[]): string[] => {
-  return colors.filter(color => {
-    if (!color) return false;
-    
-    try {
-      // Convertir a HSL para mejor control
-      const hsl = hexToHsl(color);
-      const luminance = hsl.l * 100; // 0-100
-      const saturation = hsl.s * 100; // 0-100
-      
-      // Filtro MUY estricto: luminosidad 35-65% y saturación mínima 25%
-      // Esto garantiza solo tonos intermedios, ni claros ni oscuros
-      return luminance >= 35 && luminance <= 65 && saturation >= 25;
-    } catch (error) {
-      return false;
-    }
-  });
-};
 
 // Componente principal de Esfera 3D con Three.js puro
 interface Sphere3DProps {
   size?: number;
   palette: ColorPalette | null;
-  isDark?: boolean;
 }
 
-const Sphere3D: React.FC<Sphere3DProps> = ({ size = 20, palette, isDark = false }) => {
+const Sphere3D: React.FC<Sphere3DProps> = ({ size = 20, palette }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -402,9 +342,7 @@ export const PaletteDisplay = () => {
     settings, 
     theme,
     activeShade,
-    setActiveShade,
     shouldAnimatePalette,
-    baseColor,
     updateBaseColor
   } = useAppStore();
   
@@ -413,6 +351,7 @@ export const PaletteDisplay = () => {
   const [showDonutLegend, setShowDonutLegend] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [fanPalette, setFanPalette] = useState<ColorValue[]>([]);
+  const [localActiveShade, setLocalActiveShade] = useState<number | null>(null);
   
   const colorFormat = settings.exportPreferences.format === 'css' ? 'hsl' : 'rgb';
   const isDark = theme === 'dark';
@@ -443,19 +382,20 @@ export const PaletteDisplay = () => {
   }, [palette]);
 
   const handleShadeClick = useCallback((shade: ColorShade, index: number) => {
-    setActiveShade(index);
-  }, [setActiveShade]);
+    updateBaseColor(shade.color, true);
+    setLocalActiveShade(index);
+  }, [updateBaseColor]);
 
   const handleCopyShade = useCallback(async (shade: ColorShade, index: number) => {
     try {
       // Siempre copiar el valor hexadecimal
       await navigator.clipboard.writeText(shade.color.hex);
-      setActiveShade(index);
-      setTimeout(() => setActiveShade(null), 1000);
+      setLocalActiveShade(index);
+      setTimeout(() => setLocalActiveShade(null), 1000);
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
     }
-  }, [setActiveShade]);
+  }, []);
 
   // Función para manejar clicks en colores del fan
   const handleFanColorClick = useCallback(async (color: ColorValue, index: number) => {
@@ -467,12 +407,12 @@ export const PaletteDisplay = () => {
       updateBaseColor(color, true);
       
       // Marcar como activo temporalmente
-      setActiveShade(index);
-      setTimeout(() => setActiveShade(null), 1000);
+      setLocalActiveShade(index);
+      setTimeout(() => setLocalActiveShade(null), 1000);
     } catch (error) {
       console.error('Failed to copy to clipboard:', error);
     }
-  }, [updateBaseColor, setActiveShade]);
+  }, [updateBaseColor]);
 
   // Calcular columnas del grid según el tamaño de pantalla
   const getGridColumns = () => {
@@ -536,7 +476,6 @@ export const PaletteDisplay = () => {
             <Sphere3D 
               size={isMobile ? 16 : 20}
               palette={palette}
-              isDark={isDark}
             />
             <h2 
               className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold italic`}
@@ -632,7 +571,6 @@ export const PaletteDisplay = () => {
                   <motion.div
                     key={`shade-${shade.name}-${shade.value}`}
                     className="group relative cursor-pointer"
-                    onClick={() => setActiveShade(index)}
                     initial={shouldAnimatePalette ? { opacity: 0, y: 20 } : false}
                     animate={shouldAnimatePalette ? { opacity: 1, y: 0 } : { opacity: 1, y: 0 }}
                     transition={shouldAnimatePalette ? { 
@@ -646,7 +584,7 @@ export const PaletteDisplay = () => {
                     <ShadeCard
                       shade={shade}
                       index={index}
-                      isActive={activeShade === index}
+                      isActive={localActiveShade === index}
                       onClick={() => handleShadeClick(shade, index)}
                       onCopy={(shade) => handleCopyShade(shade, index)}
                       isMobile={isMobile}
@@ -1020,7 +958,6 @@ export const PaletteDisplay = () => {
                 activeShade={activeShade}
                 hoveredShade={hoveredShade}
                 setHoveredShade={setHoveredShade}
-                setActiveShade={setActiveShade}
                 handleFanColorClick={handleFanColorClick}
                 colorFormat={colorFormat}
                 isDark={isDark}
@@ -1114,7 +1051,6 @@ const FanView = ({
   activeShade, 
   hoveredShade, 
   setHoveredShade, 
-  setActiveShade, 
   handleFanColorClick,
   colorFormat,
   isDark, 
@@ -1125,7 +1061,6 @@ const FanView = ({
   activeShade: number | null;
   hoveredShade: number | null;
   setHoveredShade: (index: number | null) => void;
-  setActiveShade: (index: number | null) => void;
   handleFanColorClick: (color: ColorValue, index: number) => void;
   colorFormat: ColorFormat;
   isDark: boolean;

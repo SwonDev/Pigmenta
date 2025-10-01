@@ -69,14 +69,17 @@ export const Footer = () => {
         </motion.a>
 
         {/* Support Button */}
-        <motion.button
+        <motion.a
+          href="https://ko-fi.com/swonproject"
+          target="_blank"
+          rel="noopener noreferrer"
           className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-red-500 text-white text-sm font-medium rounded-lg hover:from-pink-600 hover:to-red-600 transition-all duration-200 shadow-md hover:shadow-lg"
           whileHover={{ scale: 1.05, y: -2 }}
           whileTap={{ scale: 0.95 }}
         >
           <Heart className="w-4 h-4" />
           <span className="hidden sm:inline">Support</span>
-        </motion.button>
+        </motion.a>
       </div>
     </motion.footer>
   );

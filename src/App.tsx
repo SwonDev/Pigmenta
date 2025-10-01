@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { Header } from './components/Header';
+import { Menu, X, ChevronLeft, ChevronRight, Camera, Settings, Upload, Sparkles, Waves } from 'lucide-react';
 import { PaletteDisplay } from './components/PaletteDisplay';
 import { ExportSection } from './components/ExportSection';
 import { ControlsPanel } from './components/ControlsPanel';
@@ -9,25 +8,27 @@ import { ColorPicker } from './components/ColorPicker';
 import { IntelligentGeneration } from './components/IntelligentGeneration';
 import { Footer } from './components/Footer';
 import { ImageImportSection } from './components/ImageImportSection';
+import { CameraColorPicker } from './components/CameraColorPicker';
+import { CustomPaletteSection } from './components/custom-palettes';
+import { CollapsibleSection } from './components/ui/CollapsibleSection';
 import { useAppStore } from './stores/useAppStore';
+import { useColorStore } from './stores/useColorStore';
 import { DESIGN_TOKENS } from './constants/designTokens';
+import { parseColorInput } from './utils/colorUtils';
 
 function App() {
-  const { theme } = useAppStore();
+  const { isMobile } = useAppStore();
+  const { setBaseColor } = useColorStore();
+  
+  // Estados locales
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const [cameraModalOpen, setCameraModalOpen] = useState(false);
 
   // Detectar si es móvil
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      // En móvil, cerrar sidebar por defecto; en desktop, abierto por defecto
-      if (mobile) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
-      }
+      useAppStore.setState({ isMobile: mobile });
     };
 
     checkMobile();
@@ -35,8 +36,33 @@ function App() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Funciones de control
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+
+  const openCameraModal = () => {
+    setCameraModalOpen(true);
+  };
+
+  const closeCameraModal = () => {
+    setCameraModalOpen(false);
+  };
+
+  const handleColorCaptured = (color: string) => {
+    console.log('📱 Color capturado en App:', color);
+    
+    // Parsear y validar el color
+    const parsedColor = parseColorInput(color);
+    console.log('📱 Color parseado en App:', parsedColor);
+    
+    if (parsedColor) {
+      // Aplicar el color al store para asegurar que se actualice
+      console.log('📱 Aplicando color desde App al store:', parsedColor);
+      setBaseColor(parsedColor);
+    } else {
+      console.error('📱 Error: No se pudo parsear el color en App:', color);
+    }
   };
 
   return (
@@ -85,7 +111,19 @@ function App() {
             </h1>
           </div>
           
-          <div className="w-10" /> {/* Spacer for centering */}
+          {/* Botón de cámara para captura de colores */}
+          <motion.button
+            onClick={openCameraModal}
+            className="p-2 rounded-lg transition-colors duration-200"
+            style={{
+              backgroundColor: 'transparent',
+              color: DESIGN_TOKENS.colors.text.primary
+            }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            <Camera size={24} />
+          </motion.button>
         </motion.div>
       )}
 
@@ -97,15 +135,17 @@ function App() {
               className={`${
                 isMobile 
                   ? 'mobile-sidebar fixed inset-y-0 left-0 z-40 w-full max-w-sm' 
-                  : 'relative w-96'
+                  : 'relative w-full max-w-sm lg:max-w-md xl:max-w-lg'
               } flex flex-col border-r overflow-hidden`}
               style={{
                 backgroundColor: DESIGN_TOKENS.colors.surface.card,
                 borderColor: DESIGN_TOKENS.colors.border.subtle,
-                marginTop: isMobile ? '64px' : '0'
+                marginTop: isMobile ? '64px' : '0',
+                minWidth: isMobile ? 'auto' : '320px',
+                maxWidth: isMobile ? '100vw' : '400px'
               }}
               initial={isMobile ? { x: '-100%' } : { width: 0, opacity: 0 }}
-              animate={isMobile ? { x: 0 } : { width: 384, opacity: 1 }}
+              animate={isMobile ? { x: 0 } : { width: 'auto', opacity: 1 }}
               exit={isMobile ? { x: '-100%' } : { width: 0, opacity: 0 }}
               transition={{ 
                 duration: 0.3, 
@@ -158,10 +198,10 @@ function App() {
               )}
 
               {/* Sidebar Content */}
-              <div className="flex-1 overflow-y-auto">
-                <div className={`p-4 space-y-6 ${isMobile ? 'pb-20' : ''}`}>
+              <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                <div className={`p-4 space-y-6 ${isMobile ? 'pb-20' : ''} min-w-0`}>
 
-                  {/* Color Picker */}
+                  {/* Color Picker - Siempre visible */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -170,31 +210,68 @@ function App() {
                     <ColorPicker />
                   </motion.div>
 
-                  {/* Controls Panel */}
+                  {/* Opciones Avanzadas - Desplegable */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
                   >
-                    <ControlsPanel />
+                    <CollapsibleSection
+                      title="Opciones Avanzadas"
+                      description="Algoritmos, contraste y configuraciones"
+                      icon={Settings}
+                      defaultOpen={false}
+                    >
+                      <ControlsPanel />
+                    </CollapsibleSection>
                   </motion.div>
 
-                  {/* Intelligent Generation */}
+                  {/* Intelligent Generation - Desplegable */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.25 }}
                   >
-                    <IntelligentGeneration />
+                    <CollapsibleSection
+                      title="Generación Inteligente"
+                      description="Paletas inteligentes por emoción, estación e industria"
+                      icon={Sparkles}
+                      defaultOpen={false}
+                    >
+                      <IntelligentGeneration />
+                    </CollapsibleSection>
                   </motion.div>
 
-                  {/* Image Import Section - Solo en sidebar */}
+                  {/* Herramientas de Importación - Desplegable */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
                   >
-                    <ImageImportSection />
+                    <CollapsibleSection
+                      title="Herramientas de Importación"
+                      description="Importar colores desde imágenes"
+                      icon={Upload}
+                      defaultOpen={false}
+                    >
+                      <ImageImportSection />
+                    </CollapsibleSection>
+                  </motion.div>
+
+                  {/* Paletas Personalizadas - Desplegable */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.35 }}
+                  >
+                    <CollapsibleSection
+                      title="Paletas Personalizadas"
+                      description="Crea y gestiona tus propias paletas"
+                      icon={Waves}
+                      defaultOpen={false}
+                    >
+                      <CustomPaletteSection />
+                    </CollapsibleSection>
                   </motion.div>
                 </div>
               </div>
@@ -292,6 +369,13 @@ function App() {
           <Footer />
         </motion.main>
       </div>
+
+      {/* Modal de captura de colores con cámara */}
+      <CameraColorPicker
+        isOpen={cameraModalOpen}
+        onClose={closeCameraModal}
+        onColorCaptured={handleColorCaptured}
+      />
     </div>
   );
 }

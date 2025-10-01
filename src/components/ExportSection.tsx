@@ -218,6 +218,32 @@ export const ExportSection = () => {
     }
   }, [palette]);
 
+  const handleDownloadGPL = useCallback(() => {
+    if (!palette) return;
+    
+    // Temporarily set export format to GPL and get the GPL content
+    const currentFormat = settings.exportPreferences.format;
+    setExportFormat('gpl');
+    
+    // Generate GPL content using the existing exportPalette function
+    const gplContent = exportPalette();
+    
+    // Restore original format
+    setExportFormat(currentFormat);
+    
+    // Create and download the GPL file
+    const filename = `${palette.name.toLowerCase().replace(/\s+/g, '-')}-palette.gpl`;
+    const blob = new Blob([gplContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [palette, settings.exportPreferences.format, setExportFormat, exportPalette]);
+
   if (!palette || palette.shades.length === 0) {
     return (
       <motion.div
@@ -323,6 +349,26 @@ export const ExportSection = () => {
               >
                 <FileImage className="w-4 h-4 flex-shrink-0" />
                 <span className="hidden xs:inline text-sm">PNG</span>
+              </motion.button>
+              
+              <motion.button
+                onClick={handleDownloadGPL}
+                className="flex items-center justify-center space-x-1.5 px-2.5 xs:px-3 py-2 rounded-lg transition-colors duration-200 min-w-[60px] xs:min-w-[70px] flex-1 xs:flex-initial"
+                style={{
+                  backgroundColor: DESIGN_TOKENS.colors.accent.primary,
+                  color: DESIGN_TOKENS.colors.text.primary
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = DESIGN_TOKENS.colors.accent.hover;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = DESIGN_TOKENS.colors.accent.primary;
+                }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Palette className="w-4 h-4 flex-shrink-0" />
+                <span className="hidden xs:inline text-sm">GPL</span>
               </motion.button>
               
               <motion.button

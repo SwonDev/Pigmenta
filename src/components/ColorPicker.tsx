@@ -24,6 +24,7 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
   const [hslValues, setHslValues] = useState({ h: 195, s: 73, l: 43 });
   const [showCanvasSelector, setShowCanvasSelector] = useState(false);
   const [showPredefinedColors, setShowPredefinedColors] = useState(false);
+  const [showColorHistory, setShowColorHistory] = useState(false);
   const [showSliders] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -682,45 +683,79 @@ export const ColorPicker: React.FC<ColorPickerProps> = ({ className = '' }) => {
         </AnimatePresence>
       </div>
 
-      {/* Historial de colores */}
+      {/* Historial de colores - Dropdown */}
       {settings.colorHistory.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <History 
-              className="w-4 h-4" 
+        <div className={`${isMobile ? 'mb-4' : 'mb-6'}`}>
+          <button
+            className={`w-full flex items-center justify-between ${isMobile ? 'p-2.5' : 'p-3'} rounded-lg border transition-colors`}
+            style={{
+              backgroundColor: isDark ? DARK_THEME_COLORS.surface.secondary : '#f9fafb',
+              borderColor: isDark ? DARK_THEME_COLORS.border.secondary : '#e5e7eb'
+            }}
+            onClick={() => setShowColorHistory(!showColorHistory)}
+          >
+            <div className="flex items-center gap-2">
+              <History 
+                className="w-4 h-4" 
+                style={{
+                  color: isDark ? DARK_THEME_COLORS.text.tertiary : '#4b5563'
+                }}
+              />
+              <Label 
+                className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium`}
+                style={{
+                  color: isDark ? DARK_THEME_COLORS.text.secondary : '#374151'
+                }}
+              >
+                Historial Reciente
+              </Label>
+            </div>
+            <ChevronDown 
+              className={`w-4 h-4 transition-transform duration-200 ${
+                showColorHistory ? 'rotate-180' : ''
+              }`}
               style={{
                 color: isDark ? DARK_THEME_COLORS.text.tertiary : '#4b5563'
               }}
             />
-            <Label 
-              className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium`}
-              style={{
-                color: isDark ? DARK_THEME_COLORS.text.secondary : '#374151'
-              }}
-            >
-              Historial Reciente
-            </Label>
-          </div>
-          <div className={`flex ${isMobile ? 'gap-1.5' : 'gap-2'} flex-wrap`}>
-            {settings.colorHistory.slice(0, 8).map((color, index) => (
-              <button
-                key={index}
-                className={`${isMobile ? 'w-7 h-7' : 'w-8 h-8'} rounded-md border transition-colors shadow-sm hover:shadow-md`}
-                style={{ 
-                  backgroundColor: color,
+          </button>
+          
+          <AnimatePresence>
+            {showColorHistory && (
+              <motion.div
+                className={`mt-3 ${isMobile ? 'p-2.5' : 'p-3'} rounded-lg border`}
+                style={{
+                  backgroundColor: isDark ? DARK_THEME_COLORS.surface.secondary : '#f9fafb',
                   borderColor: isDark ? DARK_THEME_COLORS.border.secondary : '#e5e7eb'
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = isDark ? DARK_THEME_COLORS.text.tertiary : '#9ca3af';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = isDark ? DARK_THEME_COLORS.border.secondary : '#e5e7eb';
-                }}
-                onClick={() => selectFromHistory(color)}
-                title={color}
-              />
-            ))}
-          </div>
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <div className={`flex ${isMobile ? 'gap-1.5' : 'gap-2'} flex-wrap`}>
+                  {settings.colorHistory.slice(0, 8).map((color, index) => (
+                    <button
+                      key={index}
+                      className={`${isMobile ? 'w-7 h-7' : 'w-8 h-8'} rounded-md border transition-colors shadow-sm hover:shadow-md`}
+                      style={{ 
+                        backgroundColor: color,
+                        borderColor: isDark ? DARK_THEME_COLORS.border.secondary : '#e5e7eb'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = isDark ? DARK_THEME_COLORS.text.tertiary : '#9ca3af';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = isDark ? DARK_THEME_COLORS.border.secondary : '#e5e7eb';
+                      }}
+                      onClick={() => selectFromHistory(color)}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
     </motion.div>

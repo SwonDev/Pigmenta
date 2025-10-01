@@ -11,9 +11,20 @@ import type {
   ExportFormat,
   ExportHistoryItem,
   ExportConfig,
-  ThemeMode
+  ThemeMode,
+  CustomPalette,
+  CustomColor,
+  PaletteBuilderState,
+  CreateCustomPaletteInput,
+  UpdateCustomPaletteInput,
+  ValidationResult,
+  PaletteAction
 } from '../types';
-import { DEFAULT_SETTINGS, INITIAL_PALETTE } from '../types';
+import { 
+  DEFAULT_SETTINGS, 
+  INITIAL_PALETTE,
+  DEFAULT_PALETTE_BUILDER_CONFIG
+} from '../types';
 import { 
   settingsStorage, 
   exportHistoryStorage, 
@@ -22,6 +33,10 @@ import {
   initializeStorage 
 } from '../utils/localStorage';
 import { generatePalette, parseColorInput } from '../utils/colorUtils';
+import { CustomPaletteStorage } from '../utils/customPaletteStorage';
+import { PaletteConverter } from '../utils/paletteConverter';
+import { PaletteValidator } from '../utils/paletteValidator';
+import { CustomColorUtils, generateId } from '../utils/customColorUtils';
 
 interface AppStore extends AppState {
   
@@ -35,6 +50,12 @@ interface AppStore extends AppState {
   
   // Import palette state
   importedColors: string[];
+  
+  // Custom Palettes State
+  customPalettes: CustomPalette[];
+  currentCustomPalette: CustomPalette | null;
+  paletteBuilderState: PaletteBuilderState;
+  isCustomPaletteMode: boolean;
   
   // Actions para modo personalizado
   setCustomShadeMode: (enabled: boolean) => void;
@@ -79,6 +100,66 @@ interface AppStore extends AppState {
   setNamingPattern: (pattern: NamingPattern) => void;
   setControlsExpanded: (expanded: boolean) => void;
   toggleControls: () => void;
+  
+  // Custom Palette Actions
+  
+  // Mode Management
+  setCustomPaletteMode: (enabled: boolean) => void;
+  toggleCustomPaletteMode: () => void;
+  
+  // CRUD Operations
+  createCustomPalette: (input: CreateCustomPaletteInput) => Promise<CustomPalette>;
+  updateCustomPalette: (id: string, input: UpdateCustomPaletteInput) => Promise<void>;
+  deleteCustomPalette: (id: string) => Promise<void>;
+  duplicateCustomPalette: (id: string) => Promise<CustomPalette>;
+  loadCustomPalettes: () => Promise<void>;
+  clearCustomPalettes: () => Promise<void>;
+  
+  // Palette Selection
+  selectCustomPalette: (id: string) => Promise<void>;
+  clearCustomPaletteSelection: () => void;
+  
+  // Color Management
+  addColorToCustomPalette: (paletteId: string, color: CustomColor) => Promise<void>;
+  updateColorInCustomPalette: (paletteId: string, colorId: string, updates: Partial<CustomColor>) => Promise<void>;
+  removeColorFromCustomPalette: (paletteId: string, colorId: string) => Promise<void>;
+  reorderColorsInCustomPalette: (paletteId: string, colorIds: string[]) => Promise<void>;
+  
+  // Custom Palette Builder Actions
+  updateBuilderState: (updates: Partial<PaletteBuilderState>) => void;
+  resetBuilderState: () => void;
+  updatePaletteBuilderState: (updates: Partial<PaletteBuilderState>) => void;
+  resetPaletteBuilder: () => void;
+  addColorToPaletteBuilder: (color: ColorValue, position?: number) => void;
+  removeColorFromPaletteBuilder: (colorId: string) => void;
+  updateColorInPaletteBuilder: (colorId: string, updates: Partial<CustomColor>) => void;
+  reorderColorsInPaletteBuilder: (fromIndex: number, toIndex: number) => void;
+  saveCustomPalette: (name: string, description?: string) => Promise<string>;
+  loadPaletteForEditing: (paletteId: string) => void;
+  
+  // Conversion Operations
+  convertStandardToCustom: (standardPalette?: ColorPalette) => CustomPalette;
+  convertCustomToStandard: (customPalette: CustomPalette) => ColorPalette;
+  mergeWithStandardPalette: (customPalette: CustomPalette) => ColorPalette;
+  
+  // Validation
+  validateCustomPalette: (palette: Partial<CustomPalette>) => ValidationResult;
+  validateCustomColor: (color: Partial<CustomColor>) => ValidationResult;
+  
+  // Import/Export
+  exportCustomPalettes: () => Promise<string>;
+  importCustomPalettes: (jsonData: string) => Promise<CustomPalette[]>;
+  
+  // Utility Actions
+  generateColorName: (color: CustomColor) => string;
+  findSimilarColors: (color: CustomColor, threshold?: number) => CustomColor[];
+  optimizeCustomPalette: (paletteId: string) => Promise<void>;
+  
+  // History and Undo/Redo
+  addPaletteAction: (action: PaletteAction) => void;
+  undoLastAction: () => Promise<void>;
+  redoLastAction: () => Promise<void>;
+  clearActionHistory: () => void;
 }
 
 // Initialize storage on app start
@@ -106,6 +187,7 @@ export const useAppStore = create<AppStore>()(
       exportHistory: exportHistoryStorage.load(),
       isExportPanelOpen: false,
       isSettingsPanelOpen: false,
+      isMobile: false, // Added missing property
 
       
       // Custom shade mode state
@@ -115,12 +197,42 @@ export const useAppStore = create<AppStore>()(
       // Import palette state
       importedColors: [],
       
+      // Custom Palettes State
+      customPalettes: [],
+      currentCustomPalette: null,
+      isCustomPaletteMode: false,
+      paletteBuilderState: {
+        id: null,
+        name: '',
+        description: '',
+        tags: [],
+        colors: [],
+        isEditing: false,
+        editingColorId: null,
+        editingPaletteId: null,
+        dragState: null,
+        validation: {
+          name: { isValid: true, message: '' },
+          colors: { isValid: true, message: '' },
+          overall: { isValid: true, message: '' },
+          isValid: true,
+          warnings: [],
+          errors: []
+        },
+        saveState: {
+          isSaving: false,
+          lastSaved: null,
+          hasUnsavedChanges: false
+        },
+        config: DEFAULT_PALETTE_BUILDER_CONFIG,
+        actionHistory: [],
+        currentActionIndex: -1
+      },
+      
       // Computed properties
       get isDark() {
         return get().theme === 'dark';
       },
-
-
 
       // Actions para modo personalizado
       setCustomShadeMode: (enabled: boolean) => {
@@ -155,6 +267,7 @@ export const useAppStore = create<AppStore>()(
       },
 
       updateBaseColor: (color: ColorValue, shouldAnimate: boolean = true) => {
+        console.log('🎯 updateBaseColor llamado con:', { color, shouldAnimate });
         const state = get();
         const newPalette = generatePalette(
           color,
@@ -164,8 +277,10 @@ export const useAppStore = create<AppStore>()(
           state.namingPattern,
           state.colorName
         );
+        console.log('🎨 Nueva paleta generada:', newPalette);
         set({ currentPalette: newPalette, baseColor: color, shouldAnimatePalette: shouldAnimate });
         paletteStorage.save(newPalette);
+        console.log('✅ Store actualizado con nueva paleta');
       },
 
       updateAlgorithm: (algorithm: ColorAlgorithm) => {
@@ -606,6 +721,531 @@ export const useAppStore = create<AppStore>()(
         set((state) => ({ controlsExpanded: !state.controlsExpanded }));
       },
 
+      // Custom Palette Actions Implementation
+      
+      // Mode Management
+      setCustomPaletteMode: (enabled: boolean) => {
+        set({ isCustomPaletteMode: enabled });
+        if (enabled) {
+          get().loadCustomPalettes();
+        }
+      },
+
+      toggleCustomPaletteMode: () => {
+        const state = get();
+        console.log('🔥 toggleCustomPaletteMode ejecutado');
+        console.log('🔥 isCustomPaletteMode antes:', state.isCustomPaletteMode);
+        state.setCustomPaletteMode(!state.isCustomPaletteMode);
+        console.log('🔥 isCustomPaletteMode después:', !state.isCustomPaletteMode);
+      },
+
+      // CRUD Operations
+      createCustomPalette: async (input: CreateCustomPaletteInput): Promise<CustomPalette> => {
+        const newPalette: CustomPalette = {
+          id: generateId(),
+          name: input.name,
+          description: input.description || '',
+          colors: (input.colors || []).map((color, index) => ({
+            id: generateId(),
+            value: color,
+            position: index,
+            name: CustomColorUtils.generateColorName(color),
+            locked: false
+          })),
+          tags: (input.tags || []).map(tag => 
+            typeof tag === 'string' 
+              ? { id: generateId(), name: tag, color: '#6366F1' }
+              : tag
+          ),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          colorCount: input.colors?.length || 0,
+          isActive: false,
+          metadata: {
+            source: 'manual',
+            version: '1.0',
+            exportCount: 0
+          }
+        };
+
+        await CustomPaletteStorage.savePalette(newPalette);
+        
+        set((state) => ({
+          customPalettes: [...state.customPalettes, newPalette]
+        }));
+
+        return newPalette;
+      },
+
+      updateCustomPalette: async (id: string, input: UpdateCustomPaletteInput): Promise<void> => {
+        const state = get();
+        const paletteIndex = state.customPalettes.findIndex(p => p.id === id);
+        
+        if (paletteIndex === -1) {
+          throw new Error('Paleta no encontrada');
+        }
+
+        const updatedPalette: CustomPalette = {
+          ...state.customPalettes[paletteIndex],
+          ...input,
+          tags: input.tags ? (input.tags || []).map(tag => 
+            typeof tag === 'string' 
+              ? { id: generateId(), name: tag, color: '#6366F1' }
+              : tag
+          ) : state.customPalettes[paletteIndex].tags,
+          updatedAt: new Date().toISOString(),
+          colorCount: input.colors?.length || state.customPalettes[paletteIndex].colorCount
+        };
+
+        await CustomPaletteStorage.savePalette(updatedPalette);
+
+        const newPalettes = [...state.customPalettes];
+        newPalettes[paletteIndex] = updatedPalette;
+
+        set({
+          customPalettes: newPalettes,
+          currentCustomPalette: state.currentCustomPalette?.id === id ? updatedPalette : state.currentCustomPalette
+        });
+      },
+
+      deleteCustomPalette: async (id: string): Promise<void> => {
+        await CustomPaletteStorage.deletePalette(id);
+        
+        set((state) => ({
+          customPalettes: state.customPalettes.filter(p => p.id !== id),
+          currentCustomPalette: state.currentCustomPalette?.id === id ? null : state.currentCustomPalette
+        }));
+      },
+
+      duplicateCustomPalette: async (id: string): Promise<CustomPalette> => {
+        const state = get();
+        const originalPalette = state.customPalettes.find(p => p.id === id);
+        
+        if (!originalPalette) {
+          throw new Error('Paleta no encontrada');
+        }
+
+        const duplicatedPalette: CustomPalette = {
+          ...originalPalette,
+          id: generateId(),
+          name: `${originalPalette.name} (Copia)`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          colors: originalPalette.colors.map(color => ({
+            ...color,
+            id: generateId()
+          }))
+        };
+
+        await CustomPaletteStorage.savePalette(duplicatedPalette);
+        
+        set((state) => ({
+          customPalettes: [...state.customPalettes, duplicatedPalette]
+        }));
+
+        return duplicatedPalette;
+      },
+
+      loadCustomPalettes: async (): Promise<void> => {
+        const palettes = await CustomPaletteStorage.loadPalettes();
+        set({ customPalettes: palettes });
+      },
+
+      clearCustomPalettes: async (): Promise<void> => {
+        await CustomPaletteStorage.clearPalettes();
+        set({ 
+          customPalettes: [],
+          currentCustomPalette: null
+        });
+      },
+
+      // Palette Selection
+      selectCustomPalette: async (id: string): Promise<void> => {
+        const state = get();
+        const palette = state.customPalettes.find(p => p.id === id);
+        
+        if (!palette) {
+          throw new Error('Paleta no encontrada');
+        }
+
+        // Convert custom palette to standard palette for display
+        const standardPalette = PaletteConverter.toStandardPalette(palette);
+        
+        set({
+          currentCustomPalette: palette,
+          currentPalette: standardPalette,
+          isCustomPaletteMode: true
+        });
+      },
+
+      clearCustomPaletteSelection: () => {
+        set({
+          currentCustomPalette: null,
+          isCustomPaletteMode: false
+        });
+      },
+
+      // Color Management
+      addColorToCustomPalette: async (paletteId: string, color: CustomColor): Promise<void> => {
+        const state = get();
+        const palette = state.customPalettes.find(p => p.id === paletteId);
+        
+        if (!palette) {
+          throw new Error('Paleta no encontrada');
+        }
+
+        const updatedColors = [...palette.colors, color];
+        await state.updateCustomPalette(paletteId, { colors: updatedColors });
+      },
+
+      updateColorInCustomPalette: async (paletteId: string, colorId: string, updates: Partial<CustomColor>): Promise<void> => {
+        const state = get();
+        const palette = state.customPalettes.find(p => p.id === paletteId);
+        
+        if (!palette) {
+          throw new Error('Paleta no encontrada');
+        }
+
+        const updatedColors = palette.colors.map(color =>
+          color.id === colorId ? { ...color, ...updates } : color
+        );
+
+        await state.updateCustomPalette(paletteId, { colors: updatedColors });
+      },
+
+      removeColorFromCustomPalette: async (paletteId: string, colorId: string): Promise<void> => {
+        const state = get();
+        const palette = state.customPalettes.find(p => p.id === paletteId);
+        
+        if (!palette) {
+          throw new Error('Paleta no encontrada');
+        }
+
+        const updatedColors = palette.colors.filter(color => color.id !== colorId);
+        await state.updateCustomPalette(paletteId, { colors: updatedColors });
+      },
+
+      reorderColorsInCustomPalette: async (paletteId: string, colorIds: string[]): Promise<void> => {
+        const state = get();
+        const palette = state.customPalettes.find(p => p.id === paletteId);
+        
+        if (!palette) {
+          throw new Error('Paleta no encontrada');
+        }
+
+        // colorIds debería ser un array con fromIndex y toIndex
+        if (colorIds.length !== 2) {
+          throw new Error('Se requieren exactamente 2 índices para reordenar');
+        }
+        const [fromIndexStr, toIndexStr] = colorIds;
+        const fromIndex = parseInt(fromIndexStr, 10);
+        const toIndex = parseInt(toIndexStr, 10);
+        const reorderedColors = CustomColorUtils.reorderColors(palette.colors, fromIndex, toIndex);
+        await state.updateCustomPalette(paletteId, { colors: reorderedColors });
+      },
+
+      // Builder State Management
+      updateBuilderState: (updates: Partial<PaletteBuilderState>) => {
+        set((state) => ({
+          paletteBuilderState: {
+            ...state.paletteBuilderState,
+            ...updates
+          }
+        }));
+      },
+
+      updatePaletteBuilderState: (updates: Partial<PaletteBuilderState>) => {
+        set((state) => ({
+          paletteBuilderState: {
+            ...state.paletteBuilderState,
+            ...updates
+          }
+        }));
+      },
+
+      resetPaletteBuilder: () => {
+        set({
+          paletteBuilderState: {
+            id: null,
+            name: '',
+            description: '',
+            tags: [],
+            colors: [],
+            isEditing: false,
+            editingColorId: null,
+            editingPaletteId: null,
+            dragState: null,
+            validation: {
+              name: { isValid: true, message: '' },
+              colors: { isValid: true, message: '' },
+              overall: { isValid: true, message: '' },
+              isValid: true,
+              warnings: [],
+              errors: []
+            },
+            saveState: {
+              isSaving: false,
+              lastSaved: null,
+              hasUnsavedChanges: false
+            },
+            config: DEFAULT_PALETTE_BUILDER_CONFIG,
+            actionHistory: [],
+            currentActionIndex: -1
+          }
+        });
+      },
+
+      addColorToPaletteBuilder: (color: ColorValue, position?: number) => {
+        const state = get();
+        const newColor: CustomColor = {
+          id: generateId(),
+          value: color,
+          position: position ?? state.paletteBuilderState.colors.length,
+          name: CustomColorUtils.generateColorName(color),
+          locked: false
+        };
+        
+        const updatedColors = [...state.paletteBuilderState.colors];
+        if (position !== undefined) {
+          updatedColors.splice(position, 0, newColor);
+        } else {
+          updatedColors.push(newColor);
+        }
+        
+        state.updatePaletteBuilderState({ colors: updatedColors });
+      },
+
+      removeColorFromPaletteBuilder: (colorId: string) => {
+        const state = get();
+        const updatedColors = state.paletteBuilderState.colors.filter(c => c.id !== colorId);
+        state.updatePaletteBuilderState({ colors: updatedColors });
+      },
+
+      updateColorInPaletteBuilder: (colorId: string, updates: Partial<CustomColor>) => {
+        const state = get();
+        const updatedColors = state.paletteBuilderState.colors.map(color =>
+          color.id === colorId ? { ...color, ...updates } : color
+        );
+        state.updatePaletteBuilderState({ colors: updatedColors });
+      },
+
+      reorderColorsInPaletteBuilder: (fromIndex: number, toIndex: number) => {
+        const state = get();
+        const reorderedColors = CustomColorUtils.reorderColors(
+          state.paletteBuilderState.colors,
+          fromIndex,
+          toIndex
+        );
+        state.updatePaletteBuilderState({ colors: reorderedColors });
+      },
+
+      saveCustomPalette: async (name: string, description?: string): Promise<string> => {
+        const state = get();
+        const { colors, tags } = state.paletteBuilderState;
+        
+        const newPalette = await state.createCustomPalette({
+           name,
+           description,
+           colors: colors.map(c => c.value),
+           tags: tags
+         });
+        
+        state.resetPaletteBuilder();
+        return newPalette.id;
+      },
+
+      resetBuilderState: () => {
+        set({
+          paletteBuilderState: {
+            id: null,
+            name: '',
+            description: '',
+            tags: [],
+            colors: [],
+            isEditing: false,
+            editingColorId: null,
+            editingPaletteId: null,
+            dragState: null,
+            validation: {
+              name: { isValid: true, message: '' },
+              colors: { isValid: true, message: '' },
+              overall: { isValid: true, message: '' },
+              isValid: true,
+              warnings: [],
+              errors: []
+            },
+            saveState: {
+              isSaving: false,
+              lastSaved: null,
+              hasUnsavedChanges: false
+            },
+            config: DEFAULT_PALETTE_BUILDER_CONFIG,
+            actionHistory: [],
+            currentActionIndex: -1
+          }
+        });
+      },
+
+      loadPaletteForEditing: (paletteId: string) => {
+        const state = get();
+        const palette = state.customPalettes.find(p => p.id === paletteId);
+        
+        if (palette) {
+          set((state) => ({
+            paletteBuilderState: {
+              ...state.paletteBuilderState,
+              name: palette.name,
+              description: palette.description || '',
+              tags: (palette.tags || []).map(tag => typeof tag === 'string' ? tag : tag.name),
+              colors: palette.colors,
+              isEditing: true,
+              editingPaletteId: paletteId,
+              saveState: {
+                ...state.paletteBuilderState.saveState,
+                hasUnsavedChanges: false
+              }
+            }
+          }));
+        }
+      },
+
+      // Conversion Operations
+      convertStandardToCustom: (standardPalette?: ColorPalette): CustomPalette => {
+        const state = get();
+        const palette = standardPalette || state.currentPalette;
+        return PaletteConverter.toCustomPalette(palette);
+      },
+
+      convertCustomToStandard: (customPalette: CustomPalette): ColorPalette => {
+        return PaletteConverter.toStandardPalette(customPalette);
+      },
+
+      mergeWithStandardPalette: (customPalette: CustomPalette): ColorPalette => {
+        const state = get();
+        return PaletteConverter.mergeWithStandard(customPalette, state.currentPalette);
+      },
+
+      // Validation
+      validateCustomPalette: (palette: CustomPalette): ValidationResult => {
+        return PaletteValidator.validatePalette(palette);
+      },
+
+      validateCustomColor: (color: CustomColor): ValidationResult => {
+        return PaletteValidator.validateColors([color]);
+      },
+
+      // Import/Export
+      exportCustomPalettes: async (): Promise<string> => {
+        return await CustomPaletteStorage.exportPalettes();
+      },
+
+      importCustomPalettes: async (jsonData: string): Promise<CustomPalette[]> => {
+        const importedPalettes = await CustomPaletteStorage.importPalettes(jsonData);
+        await get().loadCustomPalettes();
+        return importedPalettes;
+      },
+
+      // Utility Actions
+      generateColorName: (color: CustomColor): string => {
+        return CustomColorUtils.generateColorName(color.value);
+      },
+
+      findSimilarColors: (color: CustomColor, threshold: number = 20): CustomColor[] => {
+        const state = get();
+        const allColors = state.customPalettes.flatMap(palette => palette.colors);
+        // Implementar lógica de búsqueda de colores similares
+        return allColors.filter(c => {
+          if (c.id === color.id) return false;
+          const distance = Math.sqrt(
+            Math.pow(c.value.rgb.r - color.value.rgb.r, 2) +
+            Math.pow(c.value.rgb.g - color.value.rgb.g, 2) +
+            Math.pow(c.value.rgb.b - color.value.rgb.b, 2)
+          );
+          return distance < threshold;
+        });
+      },
+
+      optimizeCustomPalette: async (paletteId: string): Promise<void> => {
+        const state = get();
+        const palette = state.customPalettes.find(p => p.id === paletteId);
+        
+        if (!palette) {
+          throw new Error('Paleta no encontrada');
+        }
+
+        const optimizedPalette = PaletteConverter.optimizePalette(palette);
+        await state.updateCustomPalette(paletteId, { colors: optimizedPalette.colors });
+      },
+
+      // History and Undo/Redo
+      addPaletteAction: (action: PaletteAction) => {
+        set((state) => {
+          const newHistory = [
+            ...state.paletteBuilderState.actionHistory.slice(0, state.paletteBuilderState.currentActionIndex + 1),
+            action
+          ].slice(-50); // Keep only last 50 actions
+
+          return {
+            paletteBuilderState: {
+              ...state.paletteBuilderState,
+              actionHistory: newHistory,
+              currentActionIndex: newHistory.length - 1
+            }
+          };
+        });
+      },
+
+      undoLastAction: async (): Promise<void> => {
+        const state = get();
+        const { actionHistory, currentActionIndex } = state.paletteBuilderState;
+        
+        if (currentActionIndex <= 0) return;
+
+        const previousAction = actionHistory[currentActionIndex - 1];
+        
+        // Apply the previous action state
+        if (previousAction.type === 'UPDATE_PALETTE') {
+          await state.updateCustomPalette(previousAction.paletteId, previousAction.data);
+        }
+
+        set((state) => ({
+          paletteBuilderState: {
+            ...state.paletteBuilderState,
+            currentActionIndex: state.paletteBuilderState.currentActionIndex - 1
+          }
+        }));
+      },
+
+      redoLastAction: async (): Promise<void> => {
+        const state = get();
+        const { actionHistory, currentActionIndex } = state.paletteBuilderState;
+        
+        if (currentActionIndex >= actionHistory.length - 1) return;
+
+        const nextAction = actionHistory[currentActionIndex + 1];
+        
+        // Apply the next action state
+        if (nextAction.type === 'UPDATE_PALETTE') {
+          await state.updateCustomPalette(nextAction.paletteId, nextAction.data);
+        }
+
+        set((state) => ({
+          paletteBuilderState: {
+            ...state.paletteBuilderState,
+            currentActionIndex: state.paletteBuilderState.currentActionIndex + 1
+          }
+        }));
+      },
+
+      clearActionHistory: () => {
+        set((state) => ({
+          paletteBuilderState: {
+            ...state.paletteBuilderState,
+            actionHistory: [],
+            currentActionIndex: -1
+          }
+        }));
+      },
 
     }),
     {
@@ -613,7 +1253,11 @@ export const useAppStore = create<AppStore>()(
       partialize: (state) => ({
         currentPalette: state.currentPalette,
         settings: state.settings,
-        exportHistory: state.exportHistory
+        exportHistory: state.exportHistory,
+        customPalettes: state.customPalettes,
+        currentCustomPalette: state.currentCustomPalette,
+        isCustomPaletteMode: state.isCustomPaletteMode,
+        paletteBuilderState: state.paletteBuilderState
       })
     }
   )

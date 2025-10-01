@@ -77,13 +77,22 @@ export const useColorStore = create<ColorStore>()(
         ...initialState,
         
         setBaseColor: (color) => {
+          console.log('🏪 Store setBaseColor llamado con:', color);
+          
           const colorValue = typeof color === 'string' 
             ? parseColorInput(color) 
             : color;
           
-          if (!colorValue) return;
+          console.log('🏪 Color procesado en store:', colorValue);
+          
+          if (!colorValue) {
+            console.warn('🏪 Store: Color inválido, no se aplicará');
+            return;
+          }
           
           set((state) => {
+            console.log('🏪 Store: Generando nueva paleta con color:', colorValue);
+            
             const newPalette = generatePalette(
               colorValue,
               state.algorithm,
@@ -92,6 +101,8 @@ export const useColorStore = create<ColorStore>()(
               state.namingPattern,
               state.colorName
             );
+            
+            console.log('🏪 Store: Nueva paleta generada:', newPalette);
             
             return {
               baseColor: colorValue,

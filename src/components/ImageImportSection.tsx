@@ -17,13 +17,6 @@ export const ImageImportSection = () => {
 
   return (
     <div className="space-y-3">
-      <h3 
-        className="text-sm font-semibold"
-        style={{ color: DESIGN_TOKENS.colors.text.primary }}
-      >
-        Import Tools
-      </h3>
-      
       <motion.button
         onClick={handleImageImport}
         className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 hover:shadow-lg"

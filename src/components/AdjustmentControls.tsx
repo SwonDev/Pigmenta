@@ -54,6 +54,11 @@ const algorithmInfo: Record<ColorAlgorithm, { description: string; icon: React.R
     description: 'Algoritmo personalizado con distribución avanzada de luminosidad',
     icon: <Sliders className="w-4 h-4" />,
     badge: 'Avanzado'
+  },
+  custom: {
+    description: 'Paleta personalizada creada por el usuario',
+    icon: <Palette className="w-4 h-4" />,
+    badge: 'Personalizada'
   }
 };
 
