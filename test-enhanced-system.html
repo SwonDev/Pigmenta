@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enhanced System Tests - Pigmenta</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background: #0a0a0a;
+      color: #00ff00;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #00ff00;
+      border-radius: 5px;
+    }
+    .test-header {
+      font-weight: bold;
+      font-size: 1.2em;
+      margin-bottom: 10px;
+      color: #00ffff;
+    }
+    .passed { color: #00ff00; }
+    .failed { color: #ff0000; }
+    .warning { color: #ffff00; }
+    .info { color: #00ffff; }
+    pre {
+      background: #1a1a1a;
+      padding: 10px;
+      border-radius: 3px;
+      overflow-x: auto;
+    }
+    button {
+      background: #00ff00;
+      color: #0a0a0a;
+      border: none;
+      padding: 10px 20px;
+      font-size: 1em;
+      cursor: pointer;
+      margin: 5px;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #00ffff;
+    }
+    .palette-display {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .color-box {
+      width: 80px;
+      height: 80px;
+      border: 2px solid #00ff00;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7em;
+      text-align: center;
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 PIGMENTA - Enhanced System Tests</h1>
+
+  <div>
+    <button onclick="runAnalysisTests()">Run Analysis Tests</button>
+    <button onclick="runPaletteTests()">Run Palette Generation Tests</button>
+    <button onclick="clearResults()">Clear Results</button>
+  </div>
+
+  <div id="results"></div>
+
+  <script type="module">
+    import { SemanticAnalyzer } from './src/utils/semanticAnalyzer.ts';
+    import { AIColorEngine } from './src/utils/aiColorEngine.ts';
+
+    const testCases = [
+      {
+        name: 'Simple English - Ocean Theme',
+        prompt: 'ocean blue peaceful website',
+        expectedLanguage: 'en',
+        expectedColorCount: 1,
+        minConfidence: 0.7,
+        shouldDetectCompounds: true,
+        notes: 'Should detect "ocean blue" as compound concept'
+      },
+      {
+        name: 'Complex English - Luxury Brand',
+        prompt: 'luxury brand with elegant gold accents and modern minimalist design',
+        expectedLanguage: 'en',
+        expectedColorCount: 1,
+        minConfidence: 0.8,
+        shouldDetectCompounds: true,
+        notes: 'Should detect "modern minimalist" compound'
+      },
+      {
+        name: 'English Typo - Fuzzy Match',
+        prompt: 'oceanic vibes with turquise colors',
+        expectedLanguage: 'en',
+        expectedColorCount: 2,
+        minConfidence: 0.6,
+        notes: 'Should fuzzy match "oceanic"→"ocean" and "turquise"→"turquoise"'
+      },
+      {
+        name: 'English Synonyms',
+        prompt: 'crimson and ruby tones for bold confident brand',
+        expectedLanguage: 'en',
+        expectedColorCount: 2,
+        minConfidence: 0.7,
+        notes: 'Should expand "crimson" and "ruby" to red variants'
+      },
+      {
+        name: 'Simple Spanish - Sunset Theme',
+        prompt: 'atardecer naranja cálido y acogedor',
+        expectedLanguage: 'es',
+        expectedColorCount: 1,
+        minConfidence: 0.7,
+        shouldDetectCompounds: true,
+        notes: 'Should detect "naranja atardecer" compound'
+      },
+      {
+        name: 'Complex Spanish - Professional',
+        prompt: 'marca profesional corporativa con tonos azul marino y gris elegante',
+        expectedLanguage: 'es',
+        expectedColorCount: 2,
+        minConfidence: 0.8,
+        shouldDetectCompounds: true,
+        notes: 'Should detect compounds'
+      },
+      {
+        name: 'Spanish Synonyms',
+        prompt: 'colores carmesí y escarlata para diseño audaz',
+        expectedLanguage: 'es',
+        expectedColorCount: 2,
+        minConfidence: 0.7,
+        notes: 'Should expand synonyms'
+      },
+      {
+        name: 'Mixed - Tech Startup',
+        prompt: 'tech startup moderna con vibrant blue y energía profesional',
+        expectedLanguage: 'mixed',
+        expectedColorCount: 1,
+        minConfidence: 0.6,
+        notes: 'Should handle code-switching'
+      },
+      {
+        name: 'Multiple Compounds',
+        prompt: 'sunset orange, ocean blue, forest green nature-inspired palette',
+        expectedLanguage: 'en',
+        expectedColorCount: 3,
+        minConfidence: 0.8,
+        shouldDetectCompounds: true,
+        notes: 'Should detect all three compound color concepts'
+      }
+    ];
+
+    const paletteTestCases = [
+      {
+        name: 'English - Ocean Corporate',
+        prompt: 'corporate website with ocean blue professional tone',
+      },
+      {
+        name: 'Spanish - Sunset Creative',
+        prompt: 'diseño creativo con colores de atardecer cálidos y vibrantes',
+      },
+      {
+        name: 'Mixed - Tech Startup',
+        prompt: 'tech startup moderna with vibrant energetic colors and professional feel',
+      },
+      {
+        name: 'English - Luxury Brand',
+        prompt: 'luxury brand elegant sophisticated with gold and deep purple accents',
+      },
+      {
+        name: 'Spanish - Nature Organic',
+        prompt: 'marca orgánica natural con tonos tierra y verde bosque',
+      }
+    ];
+
+    window.runAnalysisTests = function() {
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '<div class="test-section"><div class="test-header">🧪 ANALYSIS TESTS</div></div>';
+
+      let passed = 0;
+      let failed = 0;
+
+      testCases.forEach((testCase, index) => {
+        const section = document.createElement('div');
+        section.className = 'test-section';
+
+        let html = `<div class="test-header">[${index + 1}/${testCases.length}] ${testCase.name}</div>`;
+        html += `<div class="info">Prompt: "${testCase.prompt}"</div>`;
+        html += `<div>Expected: ${testCase.expectedLanguage} | Colors: ${testCase.expectedColorCount} | Min Confidence: ${testCase.minConfidence}</div>`;
+
+        try {
+          const analysis = SemanticAnalyzer.analyze(testCase.prompt);
+
+          const languageMatch = analysis.language === testCase.expectedLanguage;
+          const colorMatch = analysis.colors.length >= testCase.expectedColorCount;
+          const confidenceMatch = analysis.confidence >= testCase.minConfidence;
+
+          html += `<div class="${languageMatch ? 'passed' : 'failed'}">Language: ${analysis.language} ${languageMatch ? '✓' : '✗ Expected: ' + testCase.expectedLanguage}</div>`;
+          html += `<div class="${colorMatch ? 'passed' : 'failed'}">Colors: ${analysis.colors.length} ${colorMatch ? '✓' : '✗ Expected: >= ' + testCase.expectedColorCount}</div>`;
+
+          if (analysis.colors.length > 0) {
+            html += '<div>Detected colors:<ul>';
+            analysis.colors.slice(0, 5).forEach(color => {
+              html += `<li>${color.originalTerm} (${color.matchType}, weight: ${color.weight.toFixed(2)})</li>`;
+            });
+            html += '</ul></div>';
+          }
+
+          html += `<div class="${confidenceMatch ? 'passed' : 'failed'}">Confidence: ${analysis.confidence.toFixed(2)} ${confidenceMatch ? '✓' : '✗ Expected: >= ' + testCase.minConfidence}</div>`;
+
+          if (testCase.shouldDetectCompounds) {
+            const hasCompounds = (analysis.compoundConcepts?.length ?? 0) > 0;
+            html += `<div class="${hasCompounds ? 'passed' : 'warning'}">Compounds: ${analysis.compoundConcepts?.join(', ') || 'none'}</div>`;
+          }
+
+          const testPassed = languageMatch && colorMatch && confidenceMatch;
+          if (testPassed) {
+            passed++;
+            html += '<div class="passed">✅ PASSED</div>';
+          } else {
+            failed++;
+            html += '<div class="failed">❌ FAILED</div>';
+          }
+
+          if (testCase.notes) {
+            html += `<div class="info">📝 ${testCase.notes}</div>`;
+          }
+
+        } catch (error) {
+          failed++;
+          html += `<div class="failed">❌ ERROR: ${error.message}</div>`;
+        }
+
+        section.innerHTML = html;
+        resultsDiv.appendChild(section);
+      });
+
+      const summary = document.createElement('div');
+      summary.className = 'test-section';
+      summary.innerHTML = `
+        <div class="test-header">📊 RESULTS</div>
+        <div class="${passed === testCases.length ? 'passed' : 'warning'}">
+          ${passed}/${testCases.length} passed (${((passed / testCases.length) * 100).toFixed(1)}%)
+        </div>
+      `;
+      resultsDiv.appendChild(summary);
+    };
+
+    window.runPaletteTests = function() {
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '<div class="test-section"><div class="test-header">🎨 PALETTE GENERATION TESTS</div></div>';
+
+      paletteTestCases.forEach((test, index) => {
+        const section = document.createElement('div');
+        section.className = 'test-section';
+
+        let html = `<div class="test-header">[${index + 1}/${paletteTestCases.length}] ${test.name}</div>`;
+        html += `<div class="info">Prompt: "${test.prompt}"</div>`;
+
+        try {
+          const palette = AIColorEngine.generatePalette(test.prompt);
+
+          html += '<div>📊 Analysis:</div>';
+          html += `<div>Language: ${palette.metadata.language}</div>`;
+          html += `<div>Confidence: ${palette.metadata.confidence?.toFixed(2) || 'N/A'}</div>`;
+          html += `<div>Emotions: ${palette.metadata.emotions.join(', ')}</div>`;
+          html += `<div>Industry: ${palette.metadata.industry || 'general'}</div>`;
+
+          if (palette.metadata.compoundConcepts?.length) {
+            html += `<div>Compounds: ${palette.metadata.compoundConcepts.join(', ')}</div>`;
+          }
+
+          if (palette.metadata.colorMatches?.length) {
+            html += '<div>Color Matches:<ul>';
+            palette.metadata.colorMatches.slice(0, 3).forEach(match => {
+              html += `<li>${match.term} (${match.matchType}, ${match.weight.toFixed(2)})</li>`;
+            });
+            html += '</ul></div>';
+          }
+
+          html += '<div>🎨 Generated Palette:</div>';
+          html += '<div class="palette-display">';
+
+          const colors = [
+            { name: 'Primary', color: palette.colors.primary },
+            { name: 'Secondary', color: palette.colors.secondary },
+            { name: 'Accent', color: palette.colors.accent },
+            { name: 'Background', color: palette.colors.background },
+            { name: 'Text', color: palette.colors.text }
+          ];
+
+          colors.forEach(({ name, color }) => {
+            const hsl = `hsl(${color.h}, ${color.s}%, ${color.l}%)`;
+            html += `<div class="color-box" style="background: ${hsl}; color: ${color.l > 50 ? '#000' : '#fff'}">${name}<br>${hsl}</div>`;
+          });
+
+          html += '</div>';
+          html += '<div class="passed">✅ Palette generated successfully</div>';
+
+        } catch (error) {
+          html += `<div class="failed">❌ ERROR: ${error.message}</div>`;
+        }
+
+        section.innerHTML = html;
+        resultsDiv.appendChild(section);
+      });
+    };
+
+    window.clearResults = function() {
+      document.getElementById('results').innerHTML = '';
+    };
+
+    // Auto-run on load
+    console.log('Test suite loaded. Click buttons to run tests.');
+  </script>
+</body>
+</html>

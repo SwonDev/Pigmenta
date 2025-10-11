@@ -622,3 +622,356 @@ export const PERFORMANCE_CONFIG = {
   COLOR_CONVERSION_CACHE_SIZE: 100,
   AUTO_SAVE_INTERVAL_MS: 30000,
 };
+
+// ============================================================================
+// STUDIO MODE TYPES - AI PALETTE GENERATION SYSTEM
+// ============================================================================
+
+// Core Studio Types
+export interface SemanticColorGroup {
+  base: string;
+  200: string;
+  300?: string;
+  variations?: {
+    200: string;
+    300: string;
+  };
+}
+
+export interface SemanticPalette {
+  id: string;
+  name: string;
+  prompt: string;
+  description?: string;
+  colors: {
+    background: { 
+      name?: string;
+      base: string; 
+      variations: { 200: string; 300: string };
+      description?: string;
+    };
+    primary: { 
+      name?: string;
+      base: string; 
+      variations: { 200: string; 300: string };
+      description?: string;
+    };
+    accent: { 
+      name?: string;
+      base: string; 
+      variations: { 200: string; 300: string };
+      description?: string;
+    };
+    text: { 
+      name?: string;
+      base: string; 
+      variations: { 200: string; 300: string };
+      description?: string;
+    };
+  };
+  metadata: {
+    createdAt: Date | string;
+    harmony: 'complementary' | 'analogous' | 'triadic' | 'monochromatic';
+    accessibility: {
+      wcagAA: boolean;
+      contrastRatios: Record<string, number>;
+    };
+    isAIGenerated: boolean;
+    tags?: string[];
+    style?: 'modern' | 'classic' | 'vibrant' | 'minimal';
+    mode?: 'light' | 'dark' | 'auto';
+  };
+}
+
+// AI Generation Types
+export interface GeneratePaletteRequest {
+  prompt: string;
+  style?: 'modern' | 'classic' | 'vibrant' | 'minimal';
+  mode?: 'light' | 'dark' | 'auto';
+}
+
+export interface AIColorKeywords {
+  emotions: string[];
+  industries: string[];
+  styles: string[];
+  colors: string[];
+}
+
+export interface ColorGenerationContext {
+  keywords: string[];
+  baseColors: {
+    background: string;
+    primary: string;
+    accent: string;
+    text: string;
+  };
+  harmony: SemanticPalette['metadata']['harmony'];
+  dominantStyle: 'light' | 'dark' | 'modern' | 'classic' | 'vibrant' | 'minimal';
+  temperature: number;
+  intensity: number;
+}
+
+// Template System Types
+export type TemplateType = 'mobile-app' | 'dashboard' | 'portfolio' | 'landing-page' | 'e-commerce' | 'blog' | 'saas-platform' | 'social-media';
+
+export interface TemplateComponent {
+  id: string;
+  type: 'button' | 'card' | 'header' | 'sidebar' | 'chart' | 'navigation' | 'content';
+  colorMappings: {
+    background?: keyof SemanticPalette['colors']['background'];
+    primary?: keyof SemanticPalette['colors']['primary'];
+    accent?: keyof SemanticPalette['colors']['accent'];
+    text?: keyof SemanticPalette['colors']['text'];
+  };
+  className?: string;
+  children?: TemplateComponent[];
+}
+
+export interface TemplateTheme {
+  id: string;
+  name: string;
+  type: TemplateType;
+  cssVariables: Record<string, string>;
+  components: TemplateComponent[];
+  responsive: {
+    mobile: string;
+    tablet: string;
+    desktop: string;
+  };
+}
+
+// Gallery and Navigation Types
+export type PaletteCategory = 'new' | 'top' | 'views' | 'history';
+
+export interface PaletteGalleryItem {
+  id: string;
+  uniqueKey?: string; // Added for React key uniqueness
+  name: string;
+  description: string;
+  colors: {
+    background: { base: string; variations: { 200: string; 300: string } };
+    primary: { base: string; variations: { 200: string; 300: string } };
+    accent: { base: string; variations: { 200: string; 300: string } };
+    text: { base: string; variations: { 200: string; 300: string } };
+  };
+  tags: string[];
+  category: PaletteCategory;
+  views: number;
+  likes: number;
+  createdAt: Date | string;
+  author: string;
+  isPreset?: boolean;
+  thumbnail?: string;
+}
+
+export interface GalleryFilters {
+  category: PaletteCategory;
+  searchTerm: string;
+  sortBy: 'newest' | 'popular' | 'views' | 'name';
+}
+
+// Export System Types
+export type StudioExportFormat = 'json' | 'css' | 'scss' | 'tailwind' | 'hex' | 'png' | 'tokens';
+
+export interface StudioExportConfig {
+  format?: StudioExportFormat;
+  includeVariations: boolean;
+  includeMetadata: boolean;
+  cssPrefix?: string;
+  customPrefix?: string;
+  compressionLevel?: 'low' | 'medium' | 'high';
+  variableNaming?: 'kebab-case' | 'camelCase' | 'snake_case';
+}
+
+export interface StudioExportResult {
+  content: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+}
+
+// Store State Types
+export interface StudioState {
+  isStudioMode: boolean;
+  activeView: 'generator' | 'editor' | 'preview' | 'gallery' | 'export';
+  currentPalette: SemanticPalette | null;
+  isGenerating: boolean;
+  generationError: string | null;
+  lastPrompt: string;
+  generationHistory: SemanticPalette[];
+  history: string[];
+  preferences: {
+    autoSave: boolean;
+    showTips: boolean;
+    defaultExportFormat: string;
+    previewTemplate: string;
+  };
+  settings: {
+    defaultStyle: GeneratePaletteRequest['style'];
+    defaultMode: GeneratePaletteRequest['mode'];
+    autoSaveEnabled: boolean;
+    showAccessibilityWarnings: boolean;
+  };
+}
+
+export interface AIPaletteState {
+  palettes?: SemanticPalette[];
+  savedPalettes?: SemanticPalette[];
+  currentPalette: SemanticPalette | null;
+  isGenerating: boolean;
+  generationProgress?: number;
+  error: string | null;
+  lastGenerated?: SemanticPalette | null;
+  history?: {
+    id: string;
+    timestamp: Date;
+    prompt: string;
+    paletteId: string;
+  }[];
+  favorites: string[];
+  views?: Record<string, number>;
+  presets?: SemanticPalette[];
+}
+
+export interface TemplateState {
+  currentTemplate: TemplateType;
+  appliedPalette: SemanticPalette | null;
+  isPreviewMode: boolean;
+  zoomLevel: number;
+  showGrid: boolean;
+  templates: TemplateTheme[];
+}
+
+// Component Props Types
+export interface StudioModeSwitchProps {
+  isStudioMode: boolean;
+  onToggle: (enabled: boolean) => void;
+  className?: string;
+}
+
+export interface AIPromptGeneratorProps {
+  onGenerate: (request: GeneratePaletteRequest) => void;
+  isGenerating: boolean;
+  lastPrompt?: string;
+  suggestions?: string[];
+}
+
+export interface SemanticPaletteEditorProps {
+  palette: SemanticPalette;
+  onChange: (palette: SemanticPalette) => void;
+  isEditing: boolean;
+  onEditToggle: (editing: boolean) => void;
+}
+
+export interface UITemplatePreviewProps {
+  template: TemplateType;
+  palette: SemanticPalette;
+  zoomLevel?: number;
+  showGrid?: boolean;
+  onTemplateChange: (template: TemplateType) => void;
+}
+
+export interface PaletteGalleryProps {
+  items: PaletteGalleryItem[];
+  filters: GalleryFilters;
+  onFiltersChange: (filters: GalleryFilters) => void;
+  onPaletteSelect: (palette: SemanticPalette) => void;
+  isLoading?: boolean;
+}
+
+export interface StudioExportSystemProps {
+  palette: SemanticPalette;
+  config: StudioExportConfig;
+  onConfigChange: (config: StudioExportConfig) => void;
+  onExport: (result: StudioExportResult) => void;
+}
+
+// Storage Types for Studio
+export interface StoredStudioData {
+  version: string;
+  palettes: SemanticPalette[];
+  history: AIPaletteState['history'];
+  favorites: string[];
+  settings: StudioState['settings'];
+  lastModified: string;
+}
+
+
+
+// Hook Return Types for Studio
+export interface UseStudioStoreReturn {
+  // State
+  isStudioMode: boolean;
+  currentPalette: SemanticPalette | null;
+  isGenerating: boolean;
+  generationError: string | null;
+  settings: StudioState['settings'];
+  
+  // Actions
+  toggleStudioMode: () => void;
+  setCurrentPalette: (palette: SemanticPalette | null) => void;
+  updateSettings: (settings: Partial<StudioState['settings']>) => void;
+  clearError: () => void;
+}
+
+export interface UseAIPaletteStoreReturn {
+  // State
+  palettes: SemanticPalette[];
+  currentPalette: SemanticPalette | null;
+  isGenerating: boolean;
+  error: string | null;
+  history: AIPaletteState['history'];
+  favorites: string[];
+  presets: SemanticPalette[];
+  
+  // Actions
+  generatePalette: (request: GeneratePaletteRequest) => Promise<SemanticPalette>;
+  savePalette: (palette: SemanticPalette) => void;
+  deletePalette: (id: string) => void;
+  toggleFavorite: (id: string) => void;
+  loadPresets: () => void;
+  clearHistory: () => void;
+}
+
+export interface UseTemplateStoreReturn {
+  // State
+  currentTemplate: TemplateType;
+  appliedPalette: SemanticPalette | null;
+  isPreviewMode: boolean;
+  zoomLevel: number;
+  templates: TemplateTheme[];
+  
+  // Actions
+  setCurrentTemplate: (template: TemplateType) => void;
+  applyPalette: (palette: SemanticPalette) => void;
+  setZoomLevel: (level: number) => void;
+  togglePreviewMode: () => void;
+  generateCSSVariables: (palette: SemanticPalette) => Record<string, string>;
+}
+
+// Constants
+export const STUDIO_STORAGE_KEY = 'pigmenta_studio_data';
+export const STUDIO_VERSION = '1.0.0';
+
+export const DEFAULT_STUDIO_SETTINGS: StudioState['settings'] = {
+  defaultStyle: 'modern',
+  defaultMode: 'auto',
+  autoSaveEnabled: true,
+  showAccessibilityWarnings: true,
+};
+
+export const TEMPLATE_TYPES: TemplateType[] = ['mobile-app', 'dashboard', 'portfolio', 'landing-page'];
+
+export const PALETTE_CATEGORIES: PaletteCategory[] = ['new', 'top', 'views', 'history'];
+
+export const STUDIO_EXPORT_FORMATS: StudioExportFormat[] = ['json', 'css', 'scss', 'hex', 'png', 'tokens'];
+
+// Performance Configuration
+export const STUDIO_PERFORMANCE_CONFIG = {
+  GENERATION_TIMEOUT_MS: 10000,
+  PREVIEW_DEBOUNCE_MS: 300,
+  AUTO_SAVE_INTERVAL_MS: 30000,
+  MAX_HISTORY_ITEMS: 50,
+  MAX_FAVORITES: 100,
+  TEMPLATE_CACHE_SIZE: 10,
+};

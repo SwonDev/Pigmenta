@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__duckduckgo__duckduckgo_web_search",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(pnpm run:*)",
+      "Bash(pnpm tsc:*)",
+      "Bash(node:*)",
+      "Bash(awk:*)",
+      "Read(//mnt/c/Users/swon_/OneDrive/Imágenes/Capturas de pantalla/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -516,7 +516,7 @@ export const IntelligentGeneration = () => {
     <div className="space-y-6">
                 {/* Paletas por Emoción */}
                 <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-purple-400 flex items-center gap-2">
+                  <h4 className="text-sm font-semibold flex items-center gap-2" style={{ color: '#23AAD7' }}>
                     <Heart size={16} />
                     Paletas por Emoción
                   </h4>

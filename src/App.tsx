@@ -11,14 +11,18 @@ import { ImageImportSection } from './components/ImageImportSection';
 import { CameraColorPicker } from './components/CameraColorPicker';
 import { CustomPaletteSection } from './components/custom-palettes';
 import { CollapsibleSection } from './components/ui/CollapsibleSection';
+import { StudioModeSwitch } from './components/StudioModeSwitch';
+import { PigmentaStudio } from './components/PigmentaStudio';
 import { useAppStore } from './stores/useAppStore';
 import { useColorStore } from './stores/useColorStore';
+import { useStudioStore } from './stores/useStudioStore';
 import { DESIGN_TOKENS } from './constants/designTokens';
 import { parseColorInput } from './utils/colorUtils';
 
 function App() {
   const { isMobile } = useAppStore();
   const { setBaseColor } = useColorStore();
+  const { isStudioMode } = useStudioStore();
   
   // Estados locales
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -111,26 +115,43 @@ function App() {
             </h1>
           </div>
           
-          {/* Botón de cámara para captura de colores */}
-          <motion.button
-            onClick={openCameraModal}
-            className="p-2 rounded-lg transition-colors duration-200"
-            style={{
-              backgroundColor: 'transparent',
-              color: DESIGN_TOKENS.colors.text.primary
-            }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-          >
-            <Camera size={24} />
-          </motion.button>
+          {/* Studio Mode Switch y Botón de cámara */}
+          <div className="flex items-center gap-2">
+            <StudioModeSwitch variant="mobile" />
+            <motion.button
+              onClick={openCameraModal}
+              className="p-2 rounded-lg transition-colors duration-200"
+              style={{
+                backgroundColor: 'transparent',
+                color: DESIGN_TOKENS.colors.text.primary
+              }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <Camera size={24} />
+            </motion.button>
+          </div>
         </motion.div>
       )}
 
-      <div className="flex h-screen">
-        {/* Sidebar */}
-        <AnimatePresence mode="wait">
-          {sidebarOpen && (
+      {isStudioMode ? (
+        // Studio Mode Layout - Pantalla completa
+        <div className="w-full h-screen">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="h-full"
+          >
+            <PigmentaStudio />
+          </motion.div>
+        </div>
+      ) : (
+        // Classic Mode Layout - Con sidebar
+        <div className="flex h-screen">
+          {/* Sidebar */}
+          <AnimatePresence mode="wait">
+            {sidebarOpen && (
             <motion.aside
               className={`${
                 isMobile 
@@ -153,10 +174,10 @@ function App() {
                 width: { duration: 0.3 }
               }}
             >
-              {/* Desktop Header in Sidebar - Solo logo sin botón Import */}
+              {/* Desktop Header in Sidebar - Logo y Studio Mode Switch */}
               {!isMobile && (
                 <div 
-                  className="h-20 border-b flex-shrink-0 flex items-center px-6"
+                  className="h-20 border-b flex-shrink-0 flex items-center justify-between px-6"
                   style={{ borderColor: DESIGN_TOKENS.colors.border.subtle }}
                 >
                   <motion.div 
@@ -189,91 +210,113 @@ function App() {
                             color: DESIGN_TOKENS.colors.text.muted
                           }}
                         >
-                          Color Generator
+                          {isStudioMode ? 'AI Studio' : 'Color Generator'}
                         </p>
                       </div>
                     </div>
                   </motion.div>
+                  
+                  {/* Studio Mode Switch */}
+                  <StudioModeSwitch variant="desktop" />
                 </div>
               )}
 
               {/* Sidebar Content */}
               <div className="flex-1 overflow-y-auto overflow-x-hidden">
-                <div className={`p-4 space-y-6 ${isMobile ? 'pb-20' : ''} min-w-0`}>
-
-                  {/* Color Picker - Siempre visible */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                  >
-                    <ColorPicker />
-                  </motion.div>
-
-                  {/* Opciones Avanzadas - Desplegable */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    <CollapsibleSection
-                      title="Opciones Avanzadas"
-                      description="Algoritmos, contraste y configuraciones"
-                      icon={Settings}
-                      defaultOpen={false}
+                {!isStudioMode ? (
+                  // Contenido Clásico
+                  <div className={`p-4 space-y-6 ${isMobile ? 'pb-20' : ''} min-w-0`}>
+                    {/* Color Picker - Siempre visible */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
                     >
-                      <ControlsPanel />
-                    </CollapsibleSection>
-                  </motion.div>
+                      <ColorPicker />
+                    </motion.div>
 
-                  {/* Intelligent Generation - Desplegable */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25 }}
-                  >
-                    <CollapsibleSection
-                      title="Generación Inteligente"
-                      description="Paletas inteligentes por emoción, estación e industria"
-                      icon={Sparkles}
-                      defaultOpen={false}
+                    {/* Opciones Avanzadas - Desplegable */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
                     >
-                      <IntelligentGeneration />
-                    </CollapsibleSection>
-                  </motion.div>
+                      <CollapsibleSection
+                        title="Opciones Avanzadas"
+                        description="Algoritmos, contraste y configuraciones"
+                        icon={Settings}
+                        defaultOpen={false}
+                      >
+                        <ControlsPanel />
+                      </CollapsibleSection>
+                    </motion.div>
 
-                  {/* Herramientas de Importación - Desplegable */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                  >
-                    <CollapsibleSection
-                      title="Herramientas de Importación"
-                      description="Importar colores desde imágenes"
-                      icon={Upload}
-                      defaultOpen={false}
+                    {/* Intelligent Generation - Desplegable */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.25 }}
                     >
-                      <ImageImportSection />
-                    </CollapsibleSection>
-                  </motion.div>
+                      <CollapsibleSection
+                        title="Generación Inteligente"
+                        description="Paletas inteligentes por emoción, estación e industria"
+                        icon={Sparkles}
+                        defaultOpen={false}
+                      >
+                        <IntelligentGeneration />
+                      </CollapsibleSection>
+                    </motion.div>
 
-                  {/* Paletas Personalizadas - Desplegable */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.35 }}
-                  >
-                    <CollapsibleSection
-                      title="Paletas Personalizadas"
-                      description="Crea y gestiona tus propias paletas"
-                      icon={Waves}
-                      defaultOpen={false}
+                    {/* Herramientas de Importación - Desplegable */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
                     >
-                      <CustomPaletteSection />
-                    </CollapsibleSection>
-                  </motion.div>
-                </div>
+                      <CollapsibleSection
+                        title="Herramientas de Importación"
+                        description="Importar colores desde imágenes"
+                        icon={Upload}
+                        defaultOpen={false}
+                      >
+                        <ImageImportSection />
+                      </CollapsibleSection>
+                    </motion.div>
+
+                    {/* Paletas Personalizadas - Desplegable */}
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.35 }}
+                    >
+                      <CollapsibleSection
+                        title="Paletas Personalizadas"
+                        description="Crea y gestiona tus propias paletas"
+                        icon={Waves}
+                        defaultOpen={false}
+                      >
+                        <CustomPaletteSection />
+                      </CollapsibleSection>
+                    </motion.div>
+                  </div>
+                ) : (
+                  // Contenido Studio Mode - Mensaje informativo
+                  <div className={`p-4 ${isMobile ? 'pb-20' : ''} min-w-0`}>
+                    <motion.div
+                      className="text-center py-8"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <Sparkles className="w-12 h-12 mx-auto mb-4" style={{ color: '#23AAD7' }} />
+                      <h3 className="text-lg font-semibold text-white mb-2">Studio Mode Active</h3>
+                      <p className="text-white/60 text-sm">
+                        All Studio features are available in the main area. 
+                        Switch back to Classic mode to access traditional tools.
+                      </p>
+                    </motion.div>
+                  </div>
+                )}
               </div>
 
               {/* Desktop Toggle Button - Posición fija más arriba */}
@@ -313,7 +356,7 @@ function App() {
         )}
 
         {/* Desktop Collapsed Sidebar Toggle - Posición fija más arriba */}
-        {!isMobile && !sidebarOpen && (
+        {!isMobile && !sidebarOpen && !isStudioMode && (
           <motion.button
             onClick={toggleSidebar}
             className="fixed p-3 rounded-full shadow-lg border z-10"
@@ -334,41 +377,43 @@ function App() {
           </motion.button>
         )}
 
-        {/* Main Content */}
-        <motion.main
-          className={`flex-1 flex flex-col overflow-hidden ${
-            isMobile ? 'pt-16' : ''
-          }`}
-          layout
-          transition={{ duration: 0.3 }}
-        >
-          {/* Content Area - Sin header duplicado en desktop */}
-          <div className="flex-1 overflow-y-auto">
-            <div className={`${isMobile ? 'p-4' : 'p-8'} space-y-8`}>
-              {/* Palette Display */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-              >
-                <PaletteDisplay />
-              </motion.div>
+          {/* Main Content */}
+          <motion.main
+            className={`flex-1 flex flex-col overflow-hidden ${
+              isMobile ? 'pt-16' : ''
+            }`}
+            layout
+            transition={{ duration: 0.3 }}
+          >
+            {/* Content Area - Sin header duplicado en desktop */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Contenido Clásico */}
+              <div className={`${isMobile ? 'p-4' : 'p-8'} space-y-8`}>
+                {/* Palette Display */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                >
+                  <PaletteDisplay />
+                </motion.div>
 
-              {/* Export Section */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-              >
-                <ExportSection />
-              </motion.div>
+                {/* Export Section */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  <ExportSection />
+                </motion.div>
+              </div>
             </div>
-          </div>
 
-          {/* Footer */}
-          <Footer />
-        </motion.main>
-      </div>
+            {/* Footer - Solo en modo clásico */}
+            <Footer />
+          </motion.main>
+        </div>
+      )}
 
       {/* Modal de captura de colores con cámara */}
       <CameraColorPicker
