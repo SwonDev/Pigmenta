@@ -1,22 +1,78 @@
-# Logs
-logs
-*.log
+# Dependencies
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Build outputs
+dist/
+dist-ssr/
+build/
+out/
+.next/
+.nuxt/
+.vuepress/dist/
 
-# Editor directories and files
+# Environment variables and sensitive configuration
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+*.env
+.envrc
+
+# API keys and secrets
+.secrets
+secrets.json
+config/secrets.js
+config/secrets.ts
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log.*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+.nyc_output/
+
+# IDE and Editor files
 .vscode/*
 !.vscode/extensions.json
-.idea
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
@@ -26,19 +82,118 @@ dist-ssr
 # Trae IDE folder
 .trae/
 
-# Development and documentation files
-docs/
+# Development and documentation files (sensitive)
+docs/development/
+docs/internal/
+DEVELOPMENT.md
+INTERNAL.md
+TODO.md
+NOTES.md
 *.bak
+*.backup
+*.old
+*.orig
+*.tmp
+*.temp
 test-*.js
 test-*.html
 enhancedSystemTests.ts.bak
 
 # IDE specific configurations
 .claude/
+.cursor/
+.windsurf/
 
-# Development assets (duplicates)
-assets/
+# Development assets and duplicates
+assets/backup/
+assets/old/
+assets/temp/
 
-# Temporary and testing files
-*.tmp
-*.temp
+# Testing
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+test-results.xml
+
+# Cache directories
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env
+.env.test
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Temporary folders
+tmp/
+temp/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+$RECYCLE.BIN/
+Desktop.ini
+
+# Linux
+*~
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Development documentation that shouldn't be public
+BEFORE_AFTER_COMPARISON.md
+BROWSER_BUG_FIX_REPORT.md
+BUG_FIX_SUMMARY.md
+
+# Local configuration files
+.local
+*.local
