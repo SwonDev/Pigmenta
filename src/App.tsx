@@ -71,10 +71,13 @@ function App() {
 
   return (
     <div
-      className={`min-h-screen transition-colors duration-300 ${isMobile ? 'mobile-app-container' : ''}`}
+      className={`transition-colors duration-300 ${isMobile ? 'mobile-app-container' : ''}`}
       style={{
         backgroundColor: DESIGN_TOKENS.colors.background.app,
-        minHeight: '100dvh' // iOS dynamic viewport
+        height: '100%',
+        minHeight: '100dvh', // iOS dynamic viewport
+        position: 'relative',
+        overflow: 'hidden'
       }}
     >
       {/* Mobile Header with Menu Button - Hidden in Studio Mode */}
@@ -138,10 +141,14 @@ function App() {
       {isStudioMode ? (
         // Studio Mode Layout - Pantalla completa
         <div
-          className="w-full"
+          className="w-full h-full"
           style={{
-            height: '100dvh', // iOS dynamic viewport
-            minHeight: '100dvh'
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            overflow: 'auto'
           }}
         >
           <motion.div
@@ -149,10 +156,6 @@ function App() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
             className="h-full w-full"
-            style={{
-              height: '100%',
-              overflow: 'auto'
-            }}
           >
             <PigmentaStudio />
           </motion.div>
@@ -160,10 +163,13 @@ function App() {
       ) : (
         // Classic Mode Layout - Con sidebar
         <div
-          className="flex"
+          className="flex h-full"
           style={{
-            height: '100dvh', // iOS dynamic viewport
-            minHeight: '100dvh'
+            position: 'absolute',
+            top: isMobile ? '64px' : 0,
+            left: 0,
+            right: 0,
+            bottom: 0
           }}
         >
           {/* Sidebar */}
@@ -242,7 +248,7 @@ function App() {
               <div className="flex-1 overflow-y-auto overflow-x-hidden">
                 {!isStudioMode ? (
                   // Contenido Clásico
-                  <div className={`p-4 space-y-6 ${isMobile ? 'pb-20' : ''} min-w-0`}>
+                  <div className={`p-4 space-y-6 ${isMobile ? 'pb-24' : ''} min-w-0`}>
                     {/* Color Picker - Siempre visible */}
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
@@ -396,16 +402,14 @@ function App() {
 
           {/* Main Content */}
           <motion.main
-            className={`flex-1 flex flex-col overflow-hidden ${
-              isMobile ? 'pt-16' : ''
-            }`}
+            className="flex-1 flex flex-col overflow-hidden"
             layout
             transition={{ duration: 0.3 }}
           >
             {/* Content Area - Sin header duplicado en desktop */}
             <div className="flex-1 overflow-y-auto">
               {/* Contenido Clásico */}
-              <div className={`${isMobile ? 'p-4' : 'p-8'} space-y-8`}>
+              <div className={`${isMobile ? 'p-4 pb-24' : 'p-8'} space-y-8`}>
                 {/* Palette Display */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}

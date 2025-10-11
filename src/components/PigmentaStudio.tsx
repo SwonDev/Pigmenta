@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Palette, Eye, Download, History, Images, Pencil, Menu, X } from 'lucide-react';
 import { useStudioStore } from '../stores/useStudioStore';
 import { useAIPaletteStore } from '../stores/useAIPaletteStore';
+import { useAppStore } from '../stores/useAppStore';
 import { AIPromptGenerator } from './AIPromptGenerator';
 import { SemanticPaletteEditor } from './SemanticPaletteEditor';
 import { UITemplatePreview } from './UITemplatePreview';
@@ -78,6 +79,7 @@ const createSemanticPalette = (
 export const PigmentaStudio: React.FC = () => {
   const { isStudioMode, toggleStudioMode, activeView, setActiveView } = useStudioStore();
   const { loadPredefinedPalettes, currentPalette, savedPalettes, setCurrentPalette } = useAIPaletteStore();
+  const { isMobile } = useAppStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -746,7 +748,10 @@ export const PigmentaStudio: React.FC = () => {
           transition={{ duration: 0.4, delay: 0.15 }}
         >
           {/* Content Area */}
-          <div className="p-4 sm:p-6 md:p-8">
+          <div className={cn(
+            "p-4 sm:p-6 md:p-8",
+            isMobile && "pb-24"
+          )}>
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeView}
