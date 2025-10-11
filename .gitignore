@@ -25,3 +25,20 @@ dist-ssr
 
 # Trae IDE folder
 .trae/
+
+# Development and documentation files
+docs/
+*.bak
+test-*.js
+test-*.html
+enhancedSystemTests.ts.bak
+
+# IDE specific configurations
+.claude/
+
+# Development assets (duplicates)
+assets/
+
+# Temporary and testing files
+*.tmp
+*.temp
