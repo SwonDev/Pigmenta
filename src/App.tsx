@@ -76,8 +76,8 @@ function App() {
         backgroundColor: DESIGN_TOKENS.colors.background.app
       }}
     >
-      {/* Mobile Header with Menu Button */}
-      {isMobile && (
+      {/* Mobile Header with Menu Button - Hidden in Studio Mode */}
+      {isMobile && !isStudioMode && (
         <motion.div
           className="mobile-header fixed top-0 left-0 right-0 z-50 h-16 flex items-center justify-between px-4 border-b mobile-safe-area-top"
           style={{

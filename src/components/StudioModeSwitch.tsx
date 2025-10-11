@@ -40,16 +40,20 @@ export const StudioModeSwitch: React.FC<StudioModeSwitchProps> = ({
       >
         <motion.div
           initial={false}
-          animate={{ 
-            rotate: isStudioMode ? 180 : 0,
-            scale: isStudioMode ? 1.1 : 1
+          animate={{
+            rotate: !isStudioMode ? [0, 360] : 0,
+            scale: !isStudioMode ? [1, 1.2, 1] : 1
           }}
-          transition={{ duration: 0.4, ease: "easeInOut" }}
+          transition={{
+            duration: !isStudioMode ? 2 : 0.3,
+            repeat: !isStudioMode ? Infinity : 0,
+            ease: "easeInOut"
+          }}
         >
           {isStudioMode ? (
-            <Sparkles className="w-5 h-5" style={{ color: '#23AAD7' }} />
-          ) : (
             <Palette className="w-5 h-5 text-white/80" />
+          ) : (
+            <Sparkles className="w-5 h-5" style={{ color: '#23AAD7' }} />
           )}
         </motion.div>
         

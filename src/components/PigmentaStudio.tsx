@@ -461,34 +461,111 @@ export const PigmentaStudio: React.FC = () => {
         style={{ backgroundColor: '#071019' }}
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.4 }}
       >
-        <div className="px-6 lg:px-8">
+        {/* Mobile Layout - 2 rows */}
+        <div className="lg:hidden">
+          {/* Primera fila: Menu + Logo + Toggle */}
+          <div className="flex items-center justify-between px-3 py-2 h-14">
+            {/* Mobile Menu Button */}
+            <motion.button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/15 active:bg-white/20 transition-all duration-200 min-w-[44px] min-h-[44px]"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </motion.button>
+
+            {/* Logo */}
+            <motion.div
+              className="flex items-center gap-2"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: "spring", stiffness: 200, duration: 0.3 }}
+            >
+              <img
+                src="/logo_studio.png"
+                alt="Pigmenta Studio"
+                className="w-7 h-7 rounded-lg object-contain"
+              />
+            </motion.div>
+
+            {/* Toggle único móvil */}
+            <motion.button
+              onClick={toggleStudioMode}
+              className="p-2 rounded-lg bg-white/10 border border-white/20 hover:bg-white/15 active:bg-white/20 transition-all duration-200 min-w-[44px] min-h-[44px]"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.3 }}
+            >
+              {isStudioMode ? (
+                <Palette className="w-6 h-6 text-white/80" />
+              ) : (
+                <Sparkles className="w-6 h-6 text-[#23AAD7]" />
+              )}
+            </motion.button>
+          </div>
+
+          {/* Segunda fila: Navigation completa */}
+          <div className="px-2 py-2 border-t border-white/10">
+            <div className="grid grid-cols-5 gap-1">
+              {navigationItems.map((item, index) => {
+                const Icon = item.icon;
+                const isActive = activeView === item.id;
+                const isDisabled = item.disabled;
+
+                return (
+                  <motion.button
+                    key={item.id}
+                    onClick={() => !isDisabled && setActiveView(item.id)}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200",
+                      "focus:outline-none focus:ring-2 focus:ring-[#23AAD7]/50 active:scale-95",
+                      "min-h-[48px]",
+                      isActive
+                        ? "text-white bg-[#23AAD7]/20 border border-[#23AAD7]/50 shadow-lg shadow-[#23AAD7]/20"
+                        : isDisabled
+                        ? "text-white/30 cursor-not-allowed"
+                        : "text-white/80 hover:text-white hover:bg-white/15 active:bg-white/20"
+                    )}
+                    disabled={isDisabled}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 + index * 0.05, duration: 0.3 }}
+                    whileHover={!isDisabled ? { scale: 1.02 } : {}}
+                    whileTap={!isDisabled ? { scale: 0.95 } : {}}
+                  >
+                    <Icon className={cn(
+                      "w-5 h-5",
+                      isActive ? "text-[#23AAD7]" : isDisabled ? "text-white/30" : "text-white/80"
+                    )} />
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Layout - mantener actual */}
+        <div className="hidden lg:block px-6 lg:px-8">
           <div className="grid grid-cols-3 items-center h-16 gap-4">
             {/* Left Section - Logo */}
             <div className="flex items-center gap-4">
-              {/* Mobile Menu Button */}
-              <motion.button
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="lg:hidden p-2 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </motion.button>
-
               <motion.div
                 className="flex items-center gap-3"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                transition={{ delay: 0.2, type: "spring", stiffness: 200, duration: 0.3 }}
               >
                 <img
                   src="/logo_studio.png"
                   alt="Pigmenta Studio"
                   className="w-8 h-8 rounded-lg object-contain"
                 />
-                <div className="hidden sm:block">
+                <div>
                   <h1 className="text-xl font-bold text-white">Pigmenta Studio</h1>
                 </div>
               </motion.div>
@@ -507,25 +584,25 @@ export const PigmentaStudio: React.FC = () => {
                     onClick={() => !isDisabled && setActiveView(item.id)}
                     className={cn(
                       "flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all duration-200",
-                      "focus:outline-none focus:ring-2",
+                      "focus:outline-none focus:ring-2 focus:ring-[#23AAD7]/50 active:scale-95",
                       isActive
-                        ? "text-white bg-[#23AAD7]/20 border border-[#23AAD7]/30"
+                        ? "text-white bg-[#23AAD7]/20 border border-[#23AAD7]/50 shadow-lg shadow-[#23AAD7]/20"
                         : isDisabled
                         ? "text-white/30 cursor-not-allowed"
-                        : "text-white/70 hover:text-white hover:bg-white/10"
+                        : "text-white/80 hover:text-white hover:bg-white/15 active:bg-white/20"
                     )}
                     disabled={isDisabled}
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 + index * 0.05 }}
+                    transition={{ delay: 0.3 + index * 0.05, duration: 0.3 }}
                     whileHover={!isDisabled ? { scale: 1.02 } : {}}
-                    whileTap={!isDisabled ? { scale: 0.98 } : {}}
+                    whileTap={!isDisabled ? { scale: 0.95 } : {}}
                   >
                     <Icon className={cn(
                       "w-4 h-4 flex-shrink-0",
-                      isActive ? "text-[#23AAD7]" : isDisabled ? "text-white/30" : "text-white/70"
+                      isActive ? "text-[#23AAD7]" : isDisabled ? "text-white/30" : "text-white/80"
                     )} />
-                    <span className="hidden lg:inline">
+                    <span>
                       {item.label}
                     </span>
                   </motion.button>
@@ -556,20 +633,20 @@ export const PigmentaStudio: React.FC = () => {
               transition={{ duration: 0.3 }}
             >
           {/* Header del sidebar */}
-          <div className="p-3 border-b border-white/10">
+          <div className="p-3 md:p-4 border-b border-white/10">
             <div className="flex items-center gap-2">
-              <Palette className="w-4 h-4 text-[#23AAD7]" />
-              <h3 className="text-sm font-medium text-white">Palettes</h3>
+              <Palette className="w-5 h-5 md:w-4 md:h-4 text-[#23AAD7]" />
+              <h3 className="text-base md:text-sm font-medium text-white">Palettes</h3>
             </div>
           </div>
 
           {/* Lista completa de paletas - 70% del espacio */}
-          <div className="flex-1 p-2 overflow-y-auto">
-            <div className="space-y-2">
+          <div className="flex-1 p-2.5 md:p-2 overflow-y-auto">
+            <div className="space-y-2.5 md:space-y-2">
               {/* Combine additional palettes with saved palettes */}
               {[...additionalPalettes, ...savedPalettes].map((palette, index) => {
                 const isSelected = currentPalette?.id === palette.id;
-                
+
                 // Extraer los colores principales de la paleta
                 const mainColors = [
                   palette.colors?.primary?.base || '#3B82F6',
@@ -583,44 +660,45 @@ export const PigmentaStudio: React.FC = () => {
                     key={palette.id}
                     onClick={() => setCurrentPalette(palette)}
                     className={cn(
-                      "w-full bg-white/10 rounded-xl p-2 border transition-all duration-200 text-left",
-                      "hover:bg-white/15 hover:scale-[1.02] focus:outline-none focus:ring-2",
-                      isSelected 
-                        ? "border-[#23AAD7] bg-[#23AAD7]/10 ring-2 ring-[#23AAD7]/30" 
-                        : "border-white/20 hover:border-white/30"
+                      "w-full bg-white/10 rounded-xl p-3 md:p-2 border transition-all duration-200 text-left",
+                      "hover:bg-white/15 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-[#23AAD7]/50",
+                      "active:scale-[0.98] active:bg-white/20 min-h-[60px] md:min-h-0",
+                      isSelected
+                        ? "border-[#23AAD7] bg-[#23AAD7]/15 ring-2 ring-[#23AAD7]/40 shadow-lg shadow-[#23AAD7]/20"
+                        : "border-white/20 hover:border-white/40"
                     )}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 + index * 0.03 }}
+                    transition={{ delay: 0.3 + index * 0.03, duration: 0.3 }}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
                     {/* Círculos de colores como en la referencia */}
-                    <div className="flex gap-1 mb-1.5 justify-center">
+                    <div className="flex gap-1.5 md:gap-1 mb-2 md:mb-1.5 justify-center">
                       {mainColors.slice(0, 5).map((color, colorIndex) => (
                         <motion.div
                           key={colorIndex}
-                          className="w-4 h-4 rounded-full border border-white/20 shadow-sm"
+                          className="w-6 h-6 md:w-4 md:h-4 rounded-full border border-white/30 shadow-md"
                           style={{ backgroundColor: color }}
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
-                          transition={{ delay: 0.4 + index * 0.03 + colorIndex * 0.02 }}
+                          transition={{ delay: 0.4 + index * 0.03 + colorIndex * 0.02, duration: 0.2 }}
                         />
                       ))}
                     </div>
-                    
+
                     {/* Nombre de la paleta */}
                     <p className={cn(
-                      "text-[10px] font-medium text-center truncate",
+                      "text-xs md:text-[10px] font-medium text-center truncate",
                       isSelected ? "text-white" : "text-white/80"
                     )}>
                       {palette.name}
                     </p>
-                    
+
                     {/* Indicador de selección */}
                     {isSelected && (
                       <motion.div
-                        className="mt-1 w-full h-0.5 bg-[#23AAD7] rounded-full"
+                        className="mt-1.5 md:mt-1 w-full h-0.5 bg-[#23AAD7] rounded-full shadow-md shadow-[#23AAD7]/50"
                         initial={{ scaleX: 0 }}
                         animate={{ scaleX: 1 }}
                         transition={{ duration: 0.3 }}
@@ -633,13 +711,13 @@ export const PigmentaStudio: React.FC = () => {
               {/* Mensaje si no hay paletas */}
               {[...additionalPalettes, ...savedPalettes].length === 0 && (
                 <motion.div
-                  className="text-center py-6"
+                  className="text-center py-8 md:py-6"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 }}
+                  transition={{ delay: 0.3, duration: 0.3 }}
                 >
-                  <p className="text-white/60 text-xs mb-1">No palettes yet</p>
-                  <p className="text-white/40 text-[10px]">Generate your first palette</p>
+                  <p className="text-white/60 text-sm md:text-xs mb-1.5 md:mb-1">No palettes yet</p>
+                  <p className="text-white/40 text-xs md:text-[10px]">Generate your first palette</p>
                 </motion.div>
               )}
             </div>
@@ -651,10 +729,11 @@ export const PigmentaStudio: React.FC = () => {
         {/* Overlay para cerrar sidebar en mobile */}
         {isSidebarOpen && (
           <motion.div
-            className="lg:hidden fixed inset-0 bg-black/50 z-30"
+            className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-30"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
@@ -664,17 +743,17 @@ export const PigmentaStudio: React.FC = () => {
           className="flex-1 overflow-auto"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
         >
           {/* Content Area */}
-          <div className="p-8">
+          <div className="p-4 sm:p-6 md:p-8">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeView}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
+                exit={{ opacity: 0, y: -15 }}
+                transition={{ duration: 0.25 }}
                 className="h-full"
               >
                 {renderActiveView()}
@@ -714,21 +793,21 @@ const EmptyState: React.FC<{ type: string }> = ({ type }) => {
   const { setActiveView } = useStudioStore();
 
   return (
-    <div className="flex flex-col items-center justify-center h-96 text-center">
+    <div className="flex flex-col items-center justify-center h-96 text-center px-4">
       <motion.div
-        className="w-20 h-20 bg-white/10 rounded-2xl flex items-center justify-center mb-6"
+        className="w-16 h-16 sm:w-20 sm:h-20 bg-white/10 rounded-2xl flex items-center justify-center mb-4 sm:mb-6"
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
-        transition={{ type: "spring", stiffness: 200 }}
+        transition={{ type: "spring", stiffness: 200, duration: 0.3 }}
       >
-        <Palette className="w-10 h-10 text-white/60" />
+        <Palette className="w-8 h-8 sm:w-10 sm:h-10 text-white/60" />
       </motion.div>
-      <h3 className="text-2xl font-semibold text-white mb-3">{message.title}</h3>
-      <p className="text-white/60 mb-8 max-w-md text-lg">{message.description}</p>
+      <h3 className="text-xl sm:text-2xl font-semibold text-white mb-2 sm:mb-3">{message.title}</h3>
+      <p className="text-white/60 mb-6 sm:mb-8 max-w-md text-base sm:text-lg">{message.description}</p>
       <motion.button
         onClick={() => setActiveView('generator')}
-        className="px-8 py-3 text-white rounded-xl font-medium transition-colors text-lg"
-        style={{ 
+        className="px-6 py-2.5 sm:px-8 sm:py-3 text-white rounded-xl font-medium transition-all duration-200 text-base sm:text-lg active:scale-95 min-h-[44px]"
+        style={{
           backgroundColor: '#23AAD7'
         }}
         onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#20A0CB'}

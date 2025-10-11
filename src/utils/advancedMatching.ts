@@ -194,29 +194,180 @@ export class AdvancedMatcher {
 
   /**
    * Detect compound concepts (multi-word combinations)
+   * ENHANCED: 200+ compound concepts for intelligent phrase understanding
    */
   static detectCompoundConcepts(tokens: string[]): string[] {
     const compounds: string[] = [];
     const text = tokens.join(' ');
 
-    // English compounds
+    // English compounds - MASSIVELY EXPANDED
     const englishCompounds = [
+      // Color + Nature
       'ocean blue', 'sky blue', 'forest green', 'sunset orange', 'sunrise yellow',
-      'midnight blue', 'ocean waves', 'mountain peaks', 'autumn leaves', 'spring flowers',
+      'midnight blue', 'twilight purple', 'dawn pink', 'dusk orange', 'moonlight silver',
+      'starlight blue', 'coral pink', 'moss green', 'sand beige', 'stone gray',
+      'ice blue', 'fire red', 'earth brown', 'cloud white', 'storm gray',
+
+      // Time + Nature
+      'sunset over ocean', 'sunrise over mountains', 'midnight sky', 'twilight forest',
+      'dawn light', 'dusk horizon', 'morning dew', 'evening glow', 'night stars',
+      'autumn sunset', 'winter morning', 'spring dawn', 'summer afternoon',
+
+      // Nature Scenes
+      'ocean waves', 'mountain peaks', 'autumn leaves', 'spring flowers', 'winter snow',
+      'summer beach', 'forest path', 'desert sand', 'tropical paradise', 'arctic ice',
+      'volcanic lava', 'canyon walls', 'river flow', 'waterfall mist', 'lake reflection',
+      'meadow grass', 'garden blooms', 'bamboo grove', 'pine forest', 'coral reef',
+
+      // Emotion + Environment
+      'peaceful forest', 'calm ocean', 'energetic city', 'serene lake', 'mysterious night',
+      'joyful spring', 'cozy winter', 'warm summer', 'cool autumn', 'vibrant jungle',
+      'tranquil garden', 'exciting urban', 'relaxing beach', 'inspiring mountain',
+
+      // Style + Industry
       'corporate professional', 'tech startup', 'luxury brand', 'modern minimalist',
-      'vintage retro', 'bold energetic', 'calm peaceful', 'warm cozy', 'cool fresh',
+      'vintage retro', 'industrial urban', 'organic natural', 'digital futuristic',
+      'creative agency', 'fashion boutique', 'eco friendly', 'sustainable design',
+      'premium quality', 'artisan craft', 'contemporary art', 'classic elegance',
+
+      // Abstract + Emotion
+      'bold energetic', 'calm peaceful', 'warm cozy', 'cool fresh', 'soft gentle',
+      'bright cheerful', 'dark mysterious', 'light airy', 'deep intense', 'subtle refined',
+      'vibrant lively', 'muted sophisticated', 'pastel dreamy', 'neon electric',
+
+      // Design Approaches
       'dark mode', 'light theme', 'pastel colors', 'vibrant tones', 'muted palette',
-      'earth tones', 'neon colors', 'metallic shades', 'natural organic',
+      'earth tones', 'neon colors', 'metallic shades', 'natural organic', 'bold contrast',
+      'soft gradients', 'sharp edges', 'smooth curves', 'minimal clean', 'maximal rich',
+
+      // Material + Color
+      'golden sand', 'silver water', 'bronze metal', 'copper wire', 'platinum finish',
+      'wooden texture', 'glass clear', 'leather brown', 'velvet purple', 'silk white',
+      'cotton soft', 'denim blue', 'marble white', 'granite gray', 'brick red',
+
+      // Time of Day (Extended)
+      'early morning', 'late afternoon', 'golden hour', 'blue hour', 'magic hour',
+      'midday sun', 'midnight moon', 'twilight zone', 'dawn break', 'dusk fall',
+
+      // Celestial
+      'starry night', 'moonlit sky', 'aurora borealis', 'milky way', 'galaxy space',
+      'cosmic nebula', 'solar flare', 'lunar eclipse', 'meteor shower', 'constellation stars',
+
+      // Food & Drink
+      'coffee brown', 'wine red', 'honey gold', 'chocolate dark', 'vanilla cream',
+      'mint green', 'berry purple', 'citrus yellow', 'caramel amber', 'champagne gold',
+
+      // Emotional States (Complex)
+      'nostalgic sunset', 'hopeful dawn', 'melancholic rain', 'joyful spring',
+      'peaceful zen', 'energetic vibrant', 'romantic pink', 'passionate red',
+      'mysterious deep', 'ethereal light', 'whimsical playful', 'dramatic bold',
+
+      // Brand Personalities
+      'luxury premium', 'friendly approachable', 'innovative cutting edge', 'trustworthy reliable',
+      'youthful energetic', 'sophisticated elegant', 'powerful strong', 'creative inspiring',
+
+      // Industry Specific
+      'tech innovation', 'medical healthcare', 'finance trust', 'education learning',
+      'food culinary', 'fashion style', 'fitness wellness', 'travel adventure',
+      'real estate', 'automotive speed', 'gaming entertainment', 'music rhythm',
+
+      // Seasonal Vibes
+      'spring fresh', 'summer bright', 'autumn warm', 'winter cool', 'holiday festive',
+      'spring blossom', 'summer tropical', 'autumn harvest', 'winter frost',
+
+      // Geographic/Cultural
+      'tropical island', 'arctic tundra', 'urban city', 'rural countryside',
+      'mediterranean coast', 'asian zen', 'scandinavian minimalist', 'tropical vibrant',
+
+      // Abstract Concepts
+      'innovative technology', 'sustainable future', 'minimalist design', 'luxury experience',
+      'creative expression', 'digital transformation', 'natural harmony', 'modern simplicity',
+      'timeless classic', 'bold statement', 'elegant sophistication', 'vibrant energy',
     ];
 
-    // Spanish compounds
+    // Spanish compounds - MASSIVELY EXPANDED
     const spanishCompounds = [
+      // Color + Naturaleza
       'azul océano', 'azul cielo', 'verde bosque', 'naranja atardecer', 'amarillo amanecer',
-      'azul medianoche', 'olas del océano', 'picos montañosos', 'hojas otoñales', 'flores primaverales',
+      'azul medianoche', 'púrpura crepúsculo', 'rosa alba', 'naranja ocaso', 'plata lunar',
+      'azul estelar', 'rosa coral', 'verde musgo', 'beige arena', 'gris piedra',
+      'azul hielo', 'rojo fuego', 'marrón tierra', 'blanco nube', 'gris tormenta',
+
+      // Tiempo + Naturaleza
+      'atardecer sobre océano', 'amanecer sobre montañas', 'cielo nocturno', 'bosque crepuscular',
+      'luz del alba', 'horizonte ocaso', 'rocío matinal', 'resplandor vespertino', 'estrellas nocturnas',
+      'atardecer otoñal', 'mañana invernal', 'alba primaveral', 'tarde veraniega',
+
+      // Escenas Naturales
+      'olas del océano', 'picos montañosos', 'hojas otoñales', 'flores primaverales', 'nieve invernal',
+      'playa veraniega', 'sendero forestal', 'arena desértica', 'paraíso tropical', 'hielo ártico',
+      'lava volcánica', 'paredes del cañón', 'flujo del río', 'niebla de cascada', 'reflejo del lago',
+      'hierba del prado', 'flores del jardín', 'arboleda bambú', 'bosque de pinos', 'arrecife coral',
+
+      // Emoción + Ambiente
+      'bosque pacífico', 'océano tranquilo', 'ciudad energética', 'lago sereno', 'noche misteriosa',
+      'primavera alegre', 'invierno acogedor', 'verano cálido', 'otoño fresco', 'selva vibrante',
+      'jardín tranquilo', 'urbano emocionante', 'playa relajante', 'montaña inspiradora',
+
+      // Estilo + Industria
       'profesional corporativo', 'startup tecnológica', 'marca de lujo', 'minimalista moderno',
-      'retro vintage', 'audaz energético', 'tranquilo pacífico', 'cálido acogedor', 'fresco refrescante',
+      'retro vintage', 'urbano industrial', 'orgánico natural', 'digital futurista',
+      'agencia creativa', 'boutique moda', 'eco amigable', 'diseño sostenible',
+      'calidad premium', 'artesanía', 'arte contemporáneo', 'elegancia clásica',
+
+      // Abstracto + Emoción
+      'audaz energético', 'tranquilo pacífico', 'cálido acogedor', 'fresco refrescante', 'suave gentil',
+      'brillante alegre', 'oscuro misterioso', 'ligero aéreo', 'profundo intenso', 'sutil refinado',
+      'vibrante animado', 'apagado sofisticado', 'pastel soñador', 'neón eléctrico',
+
+      // Enfoques de Diseño
       'modo oscuro', 'tema claro', 'colores pastel', 'tonos vibrantes', 'paleta apagada',
-      'tonos tierra', 'colores neón', 'tonos metálicos', 'natural orgánico',
+      'tonos tierra', 'colores neón', 'tonos metálicos', 'natural orgánico', 'contraste audaz',
+      'degradados suaves', 'bordes definidos', 'curvas suaves', 'mínimo limpio', 'máximo rico',
+
+      // Material + Color
+      'arena dorada', 'agua plateada', 'metal bronce', 'alambre cobre', 'acabado platino',
+      'textura madera', 'cristal transparente', 'cuero marrón', 'terciopelo púrpura', 'seda blanca',
+      'algodón suave', 'mezclilla azul', 'mármol blanco', 'granito gris', 'ladrillo rojo',
+
+      // Hora del Día (Extendido)
+      'mañana temprana', 'tarde tardía', 'hora dorada', 'hora azul', 'hora mágica',
+      'sol del mediodía', 'luna de medianoche', 'zona crepuscular', 'romper del alba', 'caída del ocaso',
+
+      // Celestial
+      'noche estrellada', 'cielo lunar', 'aurora boreal', 'vía láctea', 'espacio galáctico',
+      'nebulosa cósmica', 'llamarada solar', 'eclipse lunar', 'lluvia de meteoros', 'estrellas constelación',
+
+      // Comida y Bebida
+      'café marrón', 'vino tinto', 'miel dorada', 'chocolate oscuro', 'crema vainilla',
+      'verde menta', 'púrpura mora', 'amarillo cítrico', 'ámbar caramelo', 'oro champán',
+
+      // Estados Emocionales (Complejos)
+      'atardecer nostálgico', 'amanecer esperanzador', 'lluvia melancólica', 'primavera alegre',
+      'zen pacífico', 'vibrante energético', 'rosa romántico', 'rojo apasionado',
+      'profundo misterioso', 'luz etérea', 'caprichoso juguetón', 'audaz dramático',
+
+      // Personalidades de Marca
+      'lujo premium', 'amigable accesible', 'innovador vanguardia', 'confiable seguro',
+      'juvenil energético', 'sofisticado elegante', 'poderoso fuerte', 'creativo inspirador',
+
+      // Específico de Industria
+      'tecnología innovación', 'médico salud', 'finanzas confianza', 'educación aprendizaje',
+      'comida culinaria', 'moda estilo', 'fitness bienestar', 'viaje aventura',
+      'bienes raíces', 'automotriz velocidad', 'gaming entretenimiento', 'música ritmo',
+
+      // Vibraciones Estacionales
+      'primavera fresca', 'verano brillante', 'otoño cálido', 'invierno fresco', 'festivo navideño',
+      'flor primaveral', 'tropical veraniego', 'cosecha otoñal', 'escarcha invernal',
+
+      // Geográfico/Cultural
+      'isla tropical', 'tundra ártica', 'ciudad urbana', 'campo rural',
+      'costa mediterránea', 'zen asiático', 'minimalista escandinavo', 'vibrante tropical',
+
+      // Conceptos Abstractos
+      'tecnología innovadora', 'futuro sostenible', 'diseño minimalista', 'experiencia lujo',
+      'expresión creativa', 'transformación digital', 'armonía natural', 'simplicidad moderna',
+      'clásico atemporal', 'declaración audaz', 'sofisticación elegante', 'energía vibrante',
     ];
 
     const allCompounds = [...englishCompounds, ...spanishCompounds];

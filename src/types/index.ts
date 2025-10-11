@@ -688,6 +688,8 @@ export interface GeneratePaletteRequest {
   prompt: string;
   style?: 'modern' | 'classic' | 'vibrant' | 'minimal';
   mode?: 'light' | 'dark' | 'auto';
+  forceVariation?: boolean; // Force variation for repeated prompts
+  seed?: number; // Optional seed for reproducibility
 }
 
 export interface AIColorKeywords {
@@ -831,6 +833,7 @@ export interface AIPaletteState {
   favorites: string[];
   views?: Record<string, number>;
   presets?: SemanticPalette[];
+  previousPrompts: { prompt: string; timestamp: number }[]; // Track recent prompts
 }
 
 export interface TemplateState {

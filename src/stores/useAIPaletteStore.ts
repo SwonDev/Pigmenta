@@ -28,7 +28,8 @@ const initialState: AIPaletteState = {
   error: null,
   lastGenerated: null,
   favorites: [],
-  views: {}
+  views: {},
+  previousPrompts: []
 };
 
 export const useAIPaletteStore = create<AIPaletteStore>()(
@@ -38,17 +39,38 @@ export const useAIPaletteStore = create<AIPaletteStore>()(
 
       generatePalette: async (request: GeneratePaletteRequest) => {
         set({ isGenerating: true, error: null });
-        
+
         try {
+          const state = get();
+
+          // Check if prompt was used recently (last 5 minutes)
+          const recentMatch = state.previousPrompts.find(
+            p => p.prompt.toLowerCase() === request.prompt.toLowerCase() &&
+            Date.now() - p.timestamp < 300000
+          );
+
+          // If it's a repeated prompt, force variation
+          const enhancedRequest: GeneratePaletteRequest = {
+            ...request,
+            forceVariation: request.forceVariation || !!recentMatch
+          };
+
           // Simular delay de IA
           await new Promise(resolve => setTimeout(resolve, 1500));
-          
-          const palette = AIColorEngine.generatePalette(request);
-          
+
+          const palette = AIColorEngine.generatePalette(enhancedRequest);
+
+          // Store prompt in history
+          const updatedPrompts = [
+            { prompt: request.prompt, timestamp: Date.now() },
+            ...state.previousPrompts.slice(0, 9) // Keep last 10
+          ];
+
           set({
             currentPalette: palette,
             lastGenerated: palette,
-            isGenerating: false
+            isGenerating: false,
+            previousPrompts: updatedPrompts
           });
 
           // Auto-save palette
@@ -199,7 +221,8 @@ export const useAIPaletteStore = create<AIPaletteStore>()(
       partialize: (state) => ({
         savedPalettes: state.savedPalettes,
         favorites: state.favorites,
-        views: state.views
+        views: state.views,
+        previousPrompts: state.previousPrompts
       })
     }
   )

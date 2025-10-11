@@ -10,58 +10,152 @@ import { ColorHarmonyGenerator, HSLColor } from './colorHarmony';
 import { EmotionalColorEngine } from './emotionalColorEngine';
 import { ALL_COLOR_MAPPINGS, ColorMapping } from '../data/colorKnowledge';
 import { ColorCombinationRules } from './colorCombinationRules';
+import { ContextualIntelligence, ContextualWeights, IntentAnalysis } from './contextualIntelligence';
 
 export class AIColorEngine {
   /**
    * Generate intelligent color palette from prompt
+   * ENHANCED: Now uses contextual intelligence for smarter color selection
    */
   static generatePalette(request: GeneratePaletteRequest): SemanticPalette {
+    // Step 0: Generate seed for variation (if not provided)
+    const seed = request.seed !== undefined ? request.seed : this.generateSeed(request.prompt, request.forceVariation);
+
     // Step 1: Analyze prompt semantically
     const analysis = SemanticAnalyzer.analyze(request.prompt);
 
-    // Step 2: Generate emotional profile
+    // Step 2: NEW - Apply contextual intelligence to reweight colors
+    const contextWeights = ContextualIntelligence.analyzeColorContext(
+      analysis.colors,
+      analysis
+    );
+
+    // Step 3: NEW - Analyze user intent for smarter harmony selection
+    const intentAnalysis = ContextualIntelligence.analyzeIntent(analysis, contextWeights);
+
+    // Step 4: Generate emotional profile
     const emotionalProfile = EmotionalColorEngine.generateProfile(analysis);
 
-    // Step 3: Determine base hue from keywords and emotions
-    const baseHue = this.determineBaseHue(analysis);
-    const baseSaturation = this.determineBaseSaturation(analysis, emotionalProfile);
-    const baseLightness = this.determineBaseLightness(analysis, emotionalProfile);
+    // Step 5: Determine base color using contextual intelligence (ENHANCED)
+    const baseHue = this.determineBaseHueIntelligent(analysis, contextWeights, seed);
+    const baseSaturation = this.determineBaseSaturationIntelligent(
+      analysis,
+      emotionalProfile,
+      intentAnalysis,
+      seed
+    );
+    const baseLightness = this.determineBaseLightnessIntelligent(
+      analysis,
+      emotionalProfile,
+      intentAnalysis,
+      seed
+    );
 
-    // Step 4: Generate color harmony based on analysis
+    // Step 6: Generate color harmony based on intelligent intent analysis (ENHANCED)
+    const harmonyType = intentAnalysis.suggestedHarmony || analysis.harmony;
     const harmony = this.generateHarmony(
-      analysis.harmony,
+      harmonyType,
       baseHue,
       baseSaturation,
       baseLightness,
       emotionalProfile
     );
 
-    // Step 5: Apply emotional adjustments to harmony
+    // Step 7: Apply emotional adjustments to harmony
     const adjustedHarmony = this.applyEmotionalAdjustments(harmony, emotionalProfile);
 
-    // Step 6: Ensure accessibility
-    const accessibleHarmony = this.ensureAccessibility(adjustedHarmony);
+    // Step 8: Apply contextual fine-tuning (NEW)
+    const contextTunedHarmony = this.applyContextualTuning(
+      adjustedHarmony,
+      analysis,
+      contextWeights,
+      intentAnalysis
+    );
 
-    // Step 7: Generate semantic color groups
+    // Step 9: Ensure accessibility
+    const accessibleHarmony = this.ensureAccessibility(contextTunedHarmony);
+
+    // Step 10: Generate semantic color groups
     const colorGroups = this.generateSemanticGroups(accessibleHarmony, analysis);
 
-    // Step 8: Create palette metadata
-    const metadata = this.generateMetadata(analysis, emotionalProfile, request.prompt);
+    // Step 11: Create palette metadata (ENHANCED with contextual info)
+    const metadata = this.generateMetadataEnhanced(
+      analysis,
+      emotionalProfile,
+      request.prompt,
+      contextWeights,
+      intentAnalysis
+    );
 
-    return {
+    // Step 12: Build palette
+    const palette = {
       id: this.generateId(),
       name: this.generatePaletteName(request.prompt, analysis),
       prompt: request.prompt,
-      description: this.generateDescription(analysis, emotionalProfile),
+      description: this.generateDescriptionEnhanced(analysis, emotionalProfile, contextWeights),
       colors: colorGroups,
       metadata,
     };
+
+    // Step 13: NEW - Validate semantic coherence and log if needed
+    const validation = ContextualIntelligence.validateSemanticCoherence(
+      palette,
+      analysis,
+      contextWeights
+    );
+
+    // Optionally add validation score to metadata for debugging
+    if (validation.score < 0.8) {
+      console.warn('Palette coherence below optimal:', validation);
+    }
+
+    return palette;
   }
 
   /**
-   * Determine base hue from semantic analysis
+   * Generate seed from prompt and timestamp
+   * Creates variation while maintaining reproducibility with same seed
    */
-  private static determineBaseHue(analysis: any): number {
+  private static generateSeed(prompt: string, forceVariation: boolean = false): number {
+    const timestamp = Date.now();
+
+    // Create hash from prompt
+    let promptHash = 0;
+    for (let i = 0; i < prompt.length; i++) {
+      const char = prompt.charCodeAt(i);
+      promptHash = ((promptHash << 5) - promptHash) + char;
+      promptHash = promptHash & promptHash; // Convert to 32bit integer
+    }
+
+    // If forcing variation, add more entropy from timestamp
+    if (forceVariation) {
+      // Use milliseconds for fine-grained variation
+      return Math.abs((promptHash + timestamp) % 100);
+    }
+
+    // Use just the hash for consistent results with same prompt
+    // But add seconds for some time-based variation
+    const seconds = Math.floor(timestamp / 1000);
+    return Math.abs((promptHash + seconds) % 100);
+  }
+
+  /**
+   * Apply seed-based variation to a value
+   * Applies subtle random variation based on seed
+   */
+  private static applyVariation(baseValue: number, seed: number, maxVariation: number): number {
+    // Use seed to generate pseudo-random variation
+    const variation = ((seed * 2654435761) % 100) / 100; // Golden ratio hashing
+    const offset = (variation - 0.5) * maxVariation * 2; // Center around 0
+    return baseValue + offset;
+  }
+
+  /**
+   * Determine base hue from semantic analysis WITH SEED VARIATION
+   */
+  private static determineBaseHue(analysis: any, seed: number): number {
+    let baseHue = 220; // Default
+
     // Priority 1: Direct color keywords with highest weight
     if (analysis.colors.length > 0) {
       const weightedHue = analysis.colors.reduce((sum: number, color: ColorMapping) => {
@@ -71,49 +165,52 @@ export class AIColorEngine {
       const totalWeight = analysis.colors.reduce((sum: number, color: ColorMapping) =>
         sum + (color.weight || 1), 0
       );
-      return Math.round(weightedHue / totalWeight);
+      baseHue = Math.round(weightedHue / totalWeight);
     }
-
     // Priority 2: Industry/context keywords
-    if (analysis.industries.length > 0) {
+    else if (analysis.industries.length > 0) {
       const industry = analysis.industries[0];
       const mapping = ALL_COLOR_MAPPINGS[industry];
-      if (mapping) return mapping.h;
+      if (mapping) baseHue = mapping.h;
     }
-
     // Priority 3: Emotional keywords
-    if (analysis.emotions.length > 0) {
+    else if (analysis.emotions.length > 0) {
       const emotion = analysis.emotions[0];
       const mapping = ALL_COLOR_MAPPINGS[emotion];
-      if (mapping) return mapping.h;
+      if (mapping) baseHue = mapping.h;
     }
-
     // Priority 4: Object keywords
-    if (analysis.objects.length > 0) {
+    else if (analysis.objects.length > 0) {
       const object = analysis.objects[0];
       const mapping = ALL_COLOR_MAPPINGS[object];
-      if (mapping) return mapping.h;
+      if (mapping) baseHue = mapping.h;
+    }
+    // Priority 5: Mood-based default
+    else {
+      const moodHues: Record<string, number> = {
+        energetic: 15, // Red-orange
+        calm: 200, // Blue
+        professional: 220, // Deep blue
+        playful: 340, // Pink-red
+        elegant: 280, // Purple
+        bold: 0, // Red
+        natural: 120, // Green
+        modern: 210, // Cool blue
+      };
+      baseHue = moodHues[analysis.mood] || 220;
     }
 
-    // Priority 5: Mood-based default
-    const moodHues: Record<string, number> = {
-      energetic: 15, // Red-orange
-      calm: 200, // Blue
-      professional: 220, // Deep blue
-      playful: 340, // Pink-red
-      elegant: 280, // Purple
-      bold: 0, // Red
-      natural: 120, // Green
-      modern: 210, // Cool blue
-    };
+    // Apply seed-based variation (±15 degrees for subtle difference)
+    const variedHue = this.applyVariation(baseHue, seed, 15);
 
-    return moodHues[analysis.mood] || 220; // Default professional blue
+    // Keep hue within 0-360 range
+    return ((variedHue % 360) + 360) % 360;
   }
 
   /**
-   * Determine base saturation from analysis
+   * Determine base saturation from analysis WITH SEED VARIATION
    */
-  private static determineBaseSaturation(analysis: any, profile: any): number {
+  private static determineBaseSaturation(analysis: any, profile: any, seed: number): number {
     let baseSaturation = 70; // Default
 
     // Apply saturation bias from analysis
@@ -138,13 +235,16 @@ export class AIColorEngine {
       baseSaturation = (baseSaturation + moodSaturationMap[analysis.mood]) / 2;
     }
 
-    return Math.max(20, Math.min(95, baseSaturation));
+    // Apply seed-based variation (±10% for subtle difference)
+    const variedSaturation = this.applyVariation(baseSaturation, seed + 1, 10);
+
+    return Math.max(20, Math.min(95, variedSaturation));
   }
 
   /**
-   * Determine base lightness from analysis
+   * Determine base lightness from analysis WITH SEED VARIATION
    */
-  private static determineBaseLightness(analysis: any, profile: any): number {
+  private static determineBaseLightness(analysis: any, profile: any, seed: number): number {
     let baseLightness = 50; // Default
 
     // Apply lightness bias from analysis
@@ -166,7 +266,238 @@ export class AIColorEngine {
       baseLightness = (baseLightness + moodLightnessMap[analysis.mood]) / 2;
     }
 
-    return Math.max(35, Math.min(75, baseLightness));
+    // Apply seed-based variation (±8% for subtle difference)
+    const variedLightness = this.applyVariation(baseLightness, seed + 2, 8);
+
+    return Math.max(35, Math.min(75, variedLightness));
+  }
+
+  /**
+   * ENHANCED: Determine base hue using contextual intelligence
+   * Uses reweighted colors from contextual analysis for smarter selection
+   */
+  private static determineBaseHueIntelligent(
+    analysis: any,
+    contextWeights: ContextualWeights,
+    seed: number
+  ): number {
+    let baseHue = 220; // Default
+
+    // Priority 1: Use primary color from contextual intelligence (highest confidence)
+    if (contextWeights.primaryColor && contextWeights.intentionScore > 0.6) {
+      baseHue = contextWeights.primaryColor.h;
+    }
+    // Priority 2: Weighted average of top colors (more intelligent than just first)
+    else if (contextWeights.secondaryColors.length > 0) {
+      const topColors = [contextWeights.primaryColor, ...contextWeights.secondaryColors]
+        .filter(c => c !== null)
+        .slice(0, 3);
+
+      if (topColors.length > 0) {
+        const weightedHue = topColors.reduce((sum, color) => sum + (color?.h || 0) * (color?.weight || 0), 0);
+        const totalWeight = topColors.reduce((sum, color) => sum + (color?.weight || 0), 0);
+        baseHue = Math.round(weightedHue / totalWeight);
+      }
+    }
+    // Priority 3: Fall back to original logic
+    else if (analysis.colors.length > 0) {
+      const weightedHue = analysis.colors.reduce((sum: number, color: ColorMapping) => {
+        const weight = color.weight || 1;
+        return sum + color.h * weight;
+      }, 0);
+      const totalWeight = analysis.colors.reduce((sum: number, color: ColorMapping) =>
+        sum + (color.weight || 1), 0
+      );
+      baseHue = Math.round(weightedHue / totalWeight);
+    }
+    // Priority 4: Industry/context keywords
+    else if (analysis.industries.length > 0) {
+      const industry = analysis.industries[0];
+      const mapping = ALL_COLOR_MAPPINGS[industry];
+      if (mapping) baseHue = mapping.h;
+    }
+    // Priority 5: Emotional keywords
+    else if (analysis.emotions.length > 0) {
+      const emotion = analysis.emotions[0];
+      const mapping = ALL_COLOR_MAPPINGS[emotion];
+      if (mapping) baseHue = mapping.h;
+    }
+    // Priority 6: Mood-based default
+    else {
+      const moodHues: Record<string, number> = {
+        energetic: 15,
+        calm: 200,
+        professional: 220,
+        playful: 340,
+        elegant: 280,
+        bold: 0,
+        natural: 120,
+        modern: 210,
+      };
+      baseHue = moodHues[analysis.mood] || 220;
+    }
+
+    // Apply seed-based variation
+    const variedHue = this.applyVariation(baseHue, seed, 15);
+    return ((variedHue % 360) + 360) % 360;
+  }
+
+  /**
+   * ENHANCED: Determine base saturation using intent analysis
+   */
+  private static determineBaseSaturationIntelligent(
+    analysis: any,
+    profile: any,
+    intentAnalysis: IntentAnalysis,
+    seed: number
+  ): number {
+    let baseSaturation = 70; // Default
+
+    // Use intent analysis for smarter saturation
+    if (intentAnalysis.preferredSaturation === 'high') {
+      baseSaturation = 85;
+    } else if (intentAnalysis.preferredSaturation === 'low') {
+      baseSaturation = 45;
+    } else {
+      baseSaturation = 65;
+    }
+
+    // Apply saturation bias from analysis
+    baseSaturation += analysis.saturation * 25;
+
+    // Apply intensity modifier
+    baseSaturation += analysis.intensity * 15;
+
+    // Intent-specific adjustments (more nuanced than mood)
+    if (intentAnalysis.primaryIntent === 'web' || intentAnalysis.primaryIntent === 'app') {
+      // Web/app prefer balanced saturation for readability
+      baseSaturation = Math.min(baseSaturation, 75);
+    } else if (intentAnalysis.primaryIntent === 'branding') {
+      // Branding can be more bold
+      baseSaturation = Math.max(baseSaturation, 60);
+    } else if (intentAnalysis.primaryIntent === 'creative') {
+      // Creative allows full range
+      baseSaturation = Math.max(baseSaturation, 70);
+    }
+
+    // Apply seed-based variation
+    const variedSaturation = this.applyVariation(baseSaturation, seed + 1, 10);
+
+    return Math.max(20, Math.min(95, variedSaturation));
+  }
+
+  /**
+   * ENHANCED: Determine base lightness using intent analysis
+   */
+  private static determineBaseLightnessIntelligent(
+    analysis: any,
+    profile: any,
+    intentAnalysis: IntentAnalysis,
+    seed: number
+  ): number {
+    let baseLightness = 50; // Default
+
+    // Use intent analysis for smarter lightness
+    if (intentAnalysis.preferredLightness === 'light') {
+      baseLightness = 65;
+    } else if (intentAnalysis.preferredLightness === 'dark') {
+      baseLightness = 40;
+    } else {
+      baseLightness = 52;
+    }
+
+    // Apply lightness bias from analysis
+    baseLightness += analysis.lightness * 25;
+
+    // Intent-specific adjustments
+    if (intentAnalysis.primaryIntent === 'web' || intentAnalysis.primaryIntent === 'app') {
+      // Web/app need good readability
+      if (intentAnalysis.requiresContrast) {
+        // Ensure sufficient dynamic range
+        baseLightness = Math.max(45, Math.min(60, baseLightness));
+      }
+    } else if (intentAnalysis.primaryIntent === 'presentation') {
+      // Presentations often need higher contrast
+      baseLightness = Math.max(48, baseLightness);
+    }
+
+    // Apply seed-based variation
+    const variedLightness = this.applyVariation(baseLightness, seed + 2, 8);
+
+    return Math.max(35, Math.min(75, variedLightness));
+  }
+
+  /**
+   * NEW: Apply contextual fine-tuning to harmony
+   * Adjusts colors based on dominant theme and coherence factors
+   */
+  private static applyContextualTuning(
+    harmony: any,
+    analysis: any,
+    contextWeights: ContextualWeights,
+    intentAnalysis: IntentAnalysis
+  ): any {
+    // Clone harmony to avoid mutation
+    const tunedHarmony = JSON.parse(JSON.stringify(harmony));
+
+    // Apply tuning based on coherence factors
+    const { coherenceFactors } = contextWeights;
+
+    // Temporal tuning (dawn, sunset, etc.)
+    if (coherenceFactors.temporal && coherenceFactors.temporal > 0.5) {
+      // Add warmth to temporal contexts
+      tunedHarmony.primary = this.adjustTemperature(tunedHarmony.primary, 0.1);
+      tunedHarmony.accent = this.adjustTemperature(tunedHarmony.accent, 0.15);
+    }
+
+    // Environmental tuning (nature, urban, etc.)
+    if (coherenceFactors.environmental && coherenceFactors.environmental > 0.5) {
+      // Increase saturation slightly for natural contexts
+      tunedHarmony.primary.s = Math.min(95, tunedHarmony.primary.s * 1.1);
+      tunedHarmony.secondary.s = Math.min(95, tunedHarmony.secondary.s * 1.1);
+    }
+
+    // Purposeful tuning (business contexts)
+    if (coherenceFactors.purposeful && coherenceFactors.purposeful > 0.7) {
+      // Reduce saturation for professional contexts
+      tunedHarmony.primary.s = Math.max(30, tunedHarmony.primary.s * 0.9);
+      tunedHarmony.secondary.s = Math.max(30, tunedHarmony.secondary.s * 0.9);
+    }
+
+    // Intent-based tuning
+    if (intentAnalysis.requiresContrast) {
+      // Increase lightness difference between bg and text
+      const bgLight = tunedHarmony.background.l;
+      if (bgLight > 50) {
+        tunedHarmony.text.l = Math.max(15, tunedHarmony.text.l - 10);
+      } else {
+        tunedHarmony.text.l = Math.min(95, tunedHarmony.text.l + 10);
+      }
+    }
+
+    return tunedHarmony;
+  }
+
+  /**
+   * Helper: Adjust color temperature (warmth)
+   */
+  private static adjustTemperature(color: HSLColor, amount: number): HSLColor {
+    // Shift hue towards warm (orange/red) or cool (blue)
+    let newHue = color.h;
+    if (amount > 0) {
+      // Warm: shift towards 30° (orange)
+      const target = 30;
+      newHue = color.h + (target - color.h) * amount;
+    } else {
+      // Cool: shift towards 210° (blue)
+      const target = 210;
+      newHue = color.h + (target - color.h) * Math.abs(amount);
+    }
+
+    return {
+      ...color,
+      h: ((newHue % 360) + 360) % 360,
+    };
   }
 
   /**
@@ -470,6 +801,113 @@ export class AIColorEngine {
     description += `. Uses ${analysis.harmony} color harmony for visual balance`;
 
     return description;
+  }
+
+  /**
+   * ENHANCED: Generate palette description with contextual intelligence
+   */
+  private static generateDescriptionEnhanced(
+    analysis: any,
+    profile: any,
+    contextWeights: ContextualWeights
+  ): string {
+    let description = '';
+
+    // Start with dominant theme if available
+    if (contextWeights.dominantTheme && contextWeights.intentionScore > 0.7) {
+      description = `A color palette inspired by ${contextWeights.dominantTheme}`;
+    } else {
+      // Fallback to mood-based description
+      const moodDescriptions: Record<string, string> = {
+        energetic: 'A vibrant, high-energy palette',
+        calm: 'A peaceful, serene palette',
+        professional: 'A polished, trustworthy palette',
+        playful: 'A fun, cheerful palette',
+        elegant: 'A sophisticated, refined palette',
+        bold: 'A powerful, dramatic palette',
+        natural: 'An organic, earthy palette',
+        modern: 'A contemporary, clean palette',
+      };
+      description = moodDescriptions[analysis.mood] || 'A carefully crafted color palette';
+    }
+
+    // Add coherence factor descriptions
+    const coherenceDescriptions: string[] = [];
+    if (contextWeights.coherenceFactors.temporal && contextWeights.coherenceFactors.temporal > 0.6) {
+      coherenceDescriptions.push('capturing specific moments in time');
+    }
+    if (contextWeights.coherenceFactors.emotional && contextWeights.coherenceFactors.emotional > 0.6) {
+      coherenceDescriptions.push('evoking deep emotional resonance');
+    }
+    if (contextWeights.coherenceFactors.environmental && contextWeights.coherenceFactors.environmental > 0.6) {
+      coherenceDescriptions.push('reflecting natural environments');
+    }
+    if (contextWeights.coherenceFactors.purposeful && contextWeights.coherenceFactors.purposeful > 0.7) {
+      coherenceDescriptions.push('optimized for professional use');
+    }
+
+    if (coherenceDescriptions.length > 0) {
+      description += ', ' + coherenceDescriptions.join(', ');
+    }
+
+    // Add harmony type
+    description += `. Uses ${analysis.harmony} color harmony for visual balance and aesthetic appeal`;
+
+    return description;
+  }
+
+  /**
+   * ENHANCED: Generate metadata with contextual intelligence
+   */
+  private static generateMetadataEnhanced(
+    analysis: any,
+    profile: any,
+    prompt: string,
+    contextWeights: ContextualWeights,
+    intentAnalysis: IntentAnalysis
+  ): any {
+    const contrastRatios = this.calculateContrastRatios(analysis);
+
+    return {
+      createdAt: new Date(),
+      harmony: analysis.harmony,
+      accessibility: {
+        wcagAA: true,
+        contrastRatios,
+      },
+      isAIGenerated: true,
+      style: this.mapMoodToStyle(analysis.mood),
+      tags: this.generateTags(analysis),
+      mode: this.determineMode(analysis),
+      emotionalProfile: {
+        dominantEmotion: profile.dominantEmotion,
+        mood: analysis.mood,
+        energyLevel: profile.energyLevel,
+      },
+      // ENHANCED METADATA
+      language: analysis.language,
+      confidence: analysis.confidence,
+      compoundConcepts: analysis.compoundConcepts,
+      brandPersonality: analysis.brandPersonality,
+      useCase: analysis.useCase,
+      colorMatches: analysis.colors.map((c: WeightedColor) => ({
+        term: c.originalTerm,
+        matchType: c.matchType,
+        weight: c.weight,
+      })),
+      // NEW: Contextual intelligence metadata
+      contextualAnalysis: {
+        dominantTheme: contextWeights.dominantTheme,
+        intentionScore: contextWeights.intentionScore,
+        coherenceFactors: contextWeights.coherenceFactors,
+        primaryIntent: intentAnalysis.primaryIntent,
+        intentConfidence: intentAnalysis.confidence,
+        suggestedHarmony: intentAnalysis.suggestedHarmony,
+        requiresContrast: intentAnalysis.requiresContrast,
+        saturationPreference: intentAnalysis.preferredSaturation,
+        lightnessPreference: intentAnalysis.preferredLightness,
+      },
+    };
   }
 
   /**
