@@ -124,7 +124,7 @@ export class AIColorEngine {
     for (let i = 0; i < prompt.length; i++) {
       const char = prompt.charCodeAt(i);
       promptHash = ((promptHash << 5) - promptHash) + char;
-      promptHash = promptHash & promptHash; // Convert to 32bit integer
+      promptHash = promptHash | 0; // Convert to 32bit integer
     }
 
     // If forcing variation, add more entropy from timestamp
@@ -145,7 +145,8 @@ export class AIColorEngine {
    */
   private static applyVariation(baseValue: number, seed: number, maxVariation: number): number {
     // Use seed to generate pseudo-random variation
-    const variation = ((seed * 2654435761) % 100) / 100; // Golden ratio hashing
+    // Convert to 32-bit integer to ensure consistent behavior across browsers
+    const variation = (((seed * 2654435761) | 0) % 100) / 100; // Golden ratio hashing
     const offset = (variation - 0.5) * maxVariation * 2; // Center around 0
     return baseValue + offset;
   }

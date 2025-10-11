@@ -94,10 +94,13 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  /* iOS Safari - Force full height */
-  height: 100%;
+  /* Safari-compatible viewport height - use vh as fallback, dvh as primary */
+  height: 100vh;
   height: 100dvh;
-  height: -webkit-fill-available;
+  width: 100%;
+  /* Prevent Safari bounce scroll */
+  position: fixed;
+  overflow: hidden;
 }
 
 body {
@@ -107,15 +110,16 @@ body {
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
   line-height: var(--line-height-normal);
-  /* iOS Safari - Force full height without safe area padding in body */
-  height: 100%;
+  /* Safari-compatible viewport height */
+  height: 100vh;
   height: 100dvh;
-  height: -webkit-fill-available;
-  min-height: 100%;
+  min-height: 100vh;
   min-height: 100dvh;
-  min-height: -webkit-fill-available;
+  width: 100%;
   overflow-x: hidden;
   position: relative;
+  /* iOS Safari specific: prevent zoom on input focus */
+  -webkit-text-size-adjust: 100%;
 }
 
 /* Scrollbar Styles - Ultra Subtle & Elegant */
@@ -532,14 +536,44 @@ textarea:focus-visible {
 
 /* iOS-specific styles for mobile app container */
 .mobile-app-container {
-  height: 100%;
+  /* Safari-compatible viewport height */
+  height: 100vh;
   height: 100dvh; /* Dynamic viewport height for iOS */
-  height: -webkit-fill-available; /* Fallback for older iOS */
-  min-height: 100%;
+  min-height: 100vh;
   min-height: 100dvh;
-  min-height: -webkit-fill-available;
-  position: relative;
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   overflow: hidden;
+  /* WebKit-specific fixes for Safari */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safari-specific fix for preventing white margins */
+@supports (-webkit-touch-callout: none) {
+  .mobile-app-container {
+    /* Use vh for Safari to prevent white margins */
+    height: 100vh;
+    min-height: 100vh;
+  }
+}
+
+/* Root container for desktop */
+#root {
+  height: 100vh;
+  height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Safari-specific root fix */
+@supports (-webkit-touch-callout: none) {
+  #root {
+    height: 100vh;
+  }
 }
 
 /* iOS Safe Area Support */
@@ -566,10 +600,17 @@ textarea:focus-visible {
 
 /* Mobile sidebar specific */
 .mobile-sidebar {
+  /* Safari-compatible height calculation */
   height: calc(100vh - 64px);
   height: calc(100dvh - 64px);
-  height: calc(-webkit-fill-available - 64px);
   max-height: calc(100vh - 64px);
   max-height: calc(100dvh - 64px);
-  max-height: calc(-webkit-fill-available - 64px);
+}
+
+/* Safari-specific sidebar fix */
+@supports (-webkit-touch-callout: none) {
+  .mobile-sidebar {
+    height: calc(100vh - 64px);
+    max-height: calc(100vh - 64px);
+  }
 }

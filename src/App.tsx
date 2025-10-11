@@ -73,11 +73,7 @@ function App() {
     <div
       className={`transition-colors duration-300 ${isMobile ? 'mobile-app-container' : ''}`}
       style={{
-        backgroundColor: DESIGN_TOKENS.colors.background.app,
-        height: '100%',
-        minHeight: '100dvh', // iOS dynamic viewport
-        position: 'relative',
-        overflow: 'hidden'
+        backgroundColor: DESIGN_TOKENS.colors.background.app
       }}
     >
       {/* Mobile Header with Menu Button - Hidden in Studio Mode */}
