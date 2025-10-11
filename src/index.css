@@ -2,20 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Kigen Color Variables */
+/* Kigen Color Variables - DARK MODE por defecto */
 :root {
-  /* Colors */
-  --color-background: #fafafa;
-  --color-surface: #ffffff;
-  --color-surface-secondary: #f5f5f5;
-  --color-border: #e5e5e5;
-  --color-border-hover: #d4d4d4;
-  --color-text-primary: #171717;
-  --color-text-secondary: #525252;
-  --color-text-muted: #a3a3a3;
+  /* Colors - Dark Mode */
+  --color-background: #0a0e1a;
+  --color-surface: #151b2e;
+  --color-surface-secondary: #1a2133;
+  --color-border: #2a3447;
+  --color-border-hover: #3a4557;
+  --color-text-primary: #e5e7eb;
+  --color-text-secondary: #9ca3af;
+  --color-text-muted: #6b7280;
   --color-accent: #3b82f6;
   --color-accent-hover: #2563eb;
-  --color-accent-light: #dbeafe;
+  --color-accent-light: #1e3a8a;
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
