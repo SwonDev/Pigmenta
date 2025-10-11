@@ -70,10 +70,11 @@ function App() {
   };
 
   return (
-    <div 
-      className={`min-h-screen transition-colors duration-300 ${isMobile ? 'mobile-app-container mobile-safe-area-top mobile-safe-area-bottom' : ''}`}
+    <div
+      className={`min-h-screen transition-colors duration-300 ${isMobile ? 'mobile-app-container' : ''}`}
       style={{
-        backgroundColor: DESIGN_TOKENS.colors.background.app
+        backgroundColor: DESIGN_TOKENS.colors.background.app,
+        minHeight: '100dvh' // iOS dynamic viewport
       }}
     >
       {/* Mobile Header with Menu Button - Hidden in Studio Mode */}
@@ -136,19 +137,35 @@ function App() {
 
       {isStudioMode ? (
         // Studio Mode Layout - Pantalla completa
-        <div className="w-full h-screen">
+        <div
+          className="w-full"
+          style={{
+            height: '100dvh', // iOS dynamic viewport
+            minHeight: '100dvh'
+          }}
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
-            className="h-full"
+            className="h-full w-full"
+            style={{
+              height: '100%',
+              overflow: 'auto'
+            }}
           >
             <PigmentaStudio />
           </motion.div>
         </div>
       ) : (
         // Classic Mode Layout - Con sidebar
-        <div className="flex h-screen">
+        <div
+          className="flex"
+          style={{
+            height: '100dvh', // iOS dynamic viewport
+            minHeight: '100dvh'
+          }}
+        >
           {/* Sidebar */}
           <AnimatePresence mode="wait">
             {sidebarOpen && (
